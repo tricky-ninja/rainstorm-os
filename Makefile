@@ -5,10 +5,10 @@ BUILD_DIR = build
 ISO_DIR = $(BUILD_DIR)/$(PROJECT_NAME)
 
 ASM = nasm
-CC = x86_64-elf-gcc
-LD = x86_64-elf-gcc
+CC = i686-elf-gcc
+LD = i686-elf-gcc
 
-ASMFLAGS = -f elf64
+ASMFLAGS = -f elf32
 CFLAGS = -ffreestanding -Wall -Wextra -I$(SRC_DIR) -g
 LDFLAGS = -T $(SRC_DIR)/link.ld -ffreestanding -nostdlib
 
@@ -23,10 +23,10 @@ $(BUILD_DIR)/$(OUTPUT): $(ISO_DIR)/boot/kernel $(ISO_DIR)/boot/grub/grub.cfg cre
 
 
 run: $(BUILD_DIR)/$(OUTPUT) create
-	qemu-system-x86_64 $<
+	qemu-system-i386 $<
 
 debug: $(BUILD_DIR)/$(OUTPUT) create
-	qemu-system-x86_64 $< -S -s
+	qemu-system-i386 $< -S -s
 
 create:
 	mkdir -p $(BUILD_DIR)

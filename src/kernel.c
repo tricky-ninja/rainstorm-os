@@ -1,4 +1,6 @@
 #include <stdint.h>
+#include <stddef.h>
+#include "vga.h"
 
 void kstart(void);
 
@@ -12,8 +14,16 @@ void halt()
 
 void kstart()
 {
-    uint8_t *videoMemory = (uint8_t *)0xB8000;
-    videoMemory[1] = 'H';
-    // VGA_init();
+    const char *msg = "It works!!!";
+    VGA_init();
+    VGA_clear(VGA_DEFAULT_COLOR);
+    size_t i =0;
+    while (1)
+    {
+        i = i % 9;
+        VGA_print_char('0'+i, VGA_DEFAULT_COLOR);
+        // VGA_print_char('\n', VGA_DEFAULT_COLOR);
+        i++;
+    }
     halt();
 }
