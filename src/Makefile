@@ -17,7 +17,7 @@ $(ISO_DIR)/boot/kernel: $(C_OBJS) $(ASM_OBJS) | create
 # Compile C sources (ensure output directory exists)
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c | create
 	@mkdir -p $(dir $@)
-	$(CC)   $(CFLAGS)   -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@
 
 # Assemble ASM sources (ensure output directory exists)
 $(BUILD_DIR)/%.asm.o: $(SRC_DIR)/%.asm | create

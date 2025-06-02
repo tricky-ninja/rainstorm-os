@@ -15,12 +15,26 @@ section .multiboot
 
 global _start
 extern kstart
+extern _bss_start
+extern _bss_end
 
 section .text
+
+_clear_bss:
+    lea edi, [_bss_start]
+    mov ecx, _bss_end
+    sub ecx, edi
+    xor eax, eax        ; AL = 0
+    cld
+    rep stosb           ; write AL to [EDI], ECX times, incrementing EDI
+    jmp bss_cleared
+
 _start:
     cli
     mov esp, stack_start
     mov ebp, esp
+    jmp _clear_bss
+bss_cleared:
     call kstart
     hlt
 

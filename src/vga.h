@@ -6,7 +6,7 @@
 #define VGA_DATA_REGISTER 0x3d5
 #define VGA_OFFSET_LOW 0x0f
 #define VGA_OFFSET_HIGH 0x0e
-#define VGA_DEFAULT_COLOR 0x0f
+#define VGA_DEFAULT_COLOR 0x07
 #define VGA_BLANK (0x20 | (g_currentContext.color << 8))
 
 typedef struct
