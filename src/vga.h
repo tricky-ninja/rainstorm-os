@@ -4,6 +4,9 @@
 
 #define VGA_CTRL_REGISTER 0x3d4
 #define VGA_DATA_REGISTER 0x3d5
+#define VGA_CURSOR_START_REG 0x0A
+#define VGA_CURSOR_END_REG   0x0B
+
 #define VGA_OFFSET_LOW 0x0f
 #define VGA_OFFSET_HIGH 0x0e
 #define VGA_DEFAULT_COLOR 0x07
@@ -60,7 +63,7 @@ void VGA_clear(uint8_t color);
 
 uint32_t VGA_scroll(uint8_t amt);
 
-void VGA_init();
+void VGA_enable_cursor_blinking();
 
 // Helper functions
 

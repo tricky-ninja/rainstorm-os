@@ -23,10 +23,10 @@ $(BUILD_DIR)/$(OUTPUT): $(ISO_DIR)/boot/kernel $(ISO_DIR)/boot/grub/grub.cfg cre
 
 
 run: $(BUILD_DIR)/$(OUTPUT) create
-	qemu-system-i386 $<
+	qemu-system-i386 $< -serial file:log.txt
 
 debug: $(BUILD_DIR)/$(OUTPUT) create
-	qemu-system-i386 $< -S -s
+	qemu-system-i386 $< -S -s -serial stdio
 
 create:
 	mkdir -p $(BUILD_DIR)

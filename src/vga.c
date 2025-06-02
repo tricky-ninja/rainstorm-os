@@ -100,11 +100,16 @@ uint32_t VGA_scroll(uint8_t amt)
   return VGA_get_cursor_offset();
 }
 
-void VGA_init()
+void VGA_enable_cursor_blinking()
 {
-  g_currentContext.color = VGA_DEFAULT_COLOR;
-  VGA_set_cursor(0, 0);
-  VGA_clear(VGA_DEFAULT_COLOR);
+  i686_write_port_byte(VGA_CTRL_REGISTER, VGA_CURSOR_START_REG);
+  uint8_t cursorStart = i686_read_port_byte(VGA_DATA_REGISTER);
+  cursorStart = cursorStart & 0xC0 | 14 & 0x1F;
+  i686_write_port_byte(VGA_CTRL_REGISTER, VGA_CURSOR_START_REG);
+  i686_write_port_byte(VGA_DATA_REGISTER, cursorStart);
+
+  i686_write_port_byte(VGA_CTRL_REGISTER, VGA_CURSOR_END_REG);
+  i686_write_port_byte(VGA_DATA_REGISTER, 15 & 0x1F);
 }
 
 // Helper functions

@@ -35,6 +35,7 @@
 
 #include "printf.h"
 #include "vga.h"
+#include "serial.h"
 
 
 // define this globally (e.g. gcc -DPRINTF_INCLUDE_CONFIG_H ...) to include the
@@ -49,6 +50,11 @@
 void _putchar(char character)
 {
  VGA_print_char(character, g_currentContext.color);
+}
+
+void _putchar_serial(char character)
+{
+    serial_write(SERIAL_COM1_BASE, character);
 }
 
 
@@ -159,6 +165,14 @@ static inline void _out_char(char character, void* buffer, size_t idx, size_t ma
   (void)buffer; (void)idx; (void)maxlen;
   if (character) {
     _putchar(character);
+  }
+}
+
+static inline void _out_char_serial(char character, void* buffer, size_t idx, size_t maxlen)
+{
+  (void)buffer; (void)idx; (void)maxlen;
+  if (character) {
+    _putchar_serial(character);
   }
 }
 
@@ -876,6 +890,21 @@ int printf_(const char* format, ...)
   va_end(va);
   return ret;
 }
+
+// ADDED CODE
+
+int serial_printf_(const char* format, ...)
+{
+  va_list va;
+  va_start(va, format);
+  char buffer[1];
+  const int ret = _vsnprintf(_out_char_serial, buffer, (size_t)-1, format, va);
+  va_end(va);
+  return ret;
+}
+
+
+// END OF ADDED CODE
 
 
 int sprintf_(char* buffer, const char* format, ...)

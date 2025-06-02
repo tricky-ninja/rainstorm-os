@@ -62,7 +62,9 @@ void _putchar(char character);
  * \return The number of characters that are written into the array, not counting the terminating null character
  */
 #define printf printf_
+#define serial_printf serial_printf_
 int printf_(const char* format, ...);
+int serial_printf_(const char* format, ...);
 
 
 /**
