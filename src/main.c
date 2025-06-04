@@ -3,6 +3,7 @@
 #include "vga.h"
 #include "printf.h"
 #include "serial.h"
+#include "gdt.h"
 
 void kstart(void);
 
@@ -16,8 +17,13 @@ void halt()
 
 void kstart()
 {
+
+    
+
     VGA_clear(VGA_DEFAULT_COLOR);
     VGA_enable_cursor_blinking();
+
+    
 
     printf("Trying to initialise serial\n");
     int status = serial_init(SERIAL_COM1_BASE);
@@ -31,6 +37,11 @@ void kstart()
     {
         printf("Serial device COM1 initialised\n");
         serial_printf("Serial device COM1 initialised\n");
+
+        printf("Trying to initialise gdt\n");
+        gdt_install();
+        check_gdt_loaded();
+        printf("GDT initialised, details sent to serial\n");
         VGA_clear(VGA_DEFAULT_COLOR);
 
         printf("+----------------------------------------------------------+\n");
