@@ -16,18 +16,18 @@ void VGA_set_cursor(uint8_t csrX, uint8_t csrY)
 
   uint32_t offset = csr_to_offset(g_currentContext.csrX, g_currentContext.csrY);
   offset /= 2;
-  i686_write_port_byte(VGA_CTRL_REGISTER, VGA_OFFSET_HIGH);
-  i686_write_port_byte(VGA_DATA_REGISTER, (uint8_t)(offset >> 8));
-  i686_write_port_byte(VGA_CTRL_REGISTER, VGA_OFFSET_LOW);
-  i686_write_port_byte(VGA_DATA_REGISTER, (uint8_t)(offset & 0xff));
+  write_portb(VGA_CTRL_REGISTER, VGA_OFFSET_HIGH);
+  write_portb(VGA_DATA_REGISTER, (uint8_t)(offset >> 8));
+  write_portb(VGA_CTRL_REGISTER, VGA_OFFSET_LOW);
+  write_portb(VGA_DATA_REGISTER, (uint8_t)(offset & 0xff));
 }
 
 uint32_t VGA_get_cursor_offset()
 {
-  i686_write_port_byte(VGA_CTRL_REGISTER, VGA_OFFSET_HIGH);
-  uint32_t offset = i686_read_port_byte(VGA_DATA_REGISTER) << 8;
-  i686_write_port_byte(VGA_CTRL_REGISTER, VGA_OFFSET_LOW);
-  offset += i686_read_port_byte(VGA_DATA_REGISTER);
+  write_portb(VGA_CTRL_REGISTER, VGA_OFFSET_HIGH);
+  uint32_t offset = read_portb(VGA_DATA_REGISTER) << 8;
+  write_portb(VGA_CTRL_REGISTER, VGA_OFFSET_LOW);
+  offset += read_portb(VGA_DATA_REGISTER);
   return offset * 2;
 }
 
@@ -102,14 +102,14 @@ uint32_t VGA_scroll(uint8_t amt)
 
 void VGA_enable_cursor_blinking()
 {
-  i686_write_port_byte(VGA_CTRL_REGISTER, VGA_CURSOR_START_REG);
-  uint8_t cursorStart = i686_read_port_byte(VGA_DATA_REGISTER);
-  cursorStart = cursorStart & 0xC0 | 14 & 0x1F;
-  i686_write_port_byte(VGA_CTRL_REGISTER, VGA_CURSOR_START_REG);
-  i686_write_port_byte(VGA_DATA_REGISTER, cursorStart);
+  write_portb(VGA_CTRL_REGISTER, VGA_CURSOR_START_REG);
+  uint8_t cursorStart = read_portb(VGA_DATA_REGISTER);
+  cursorStart = (cursorStart & 0xC0) | (14 & 0x1F);
+  write_portb(VGA_CTRL_REGISTER, VGA_CURSOR_START_REG);
+  write_portb(VGA_DATA_REGISTER, cursorStart);
 
-  i686_write_port_byte(VGA_CTRL_REGISTER, VGA_CURSOR_END_REG);
-  i686_write_port_byte(VGA_DATA_REGISTER, 15 & 0x1F);
+  write_portb(VGA_CTRL_REGISTER, VGA_CURSOR_END_REG);
+  write_portb(VGA_DATA_REGISTER, 15 & 0x1F);
 }
 
 // Helper functions

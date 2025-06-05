@@ -4,11 +4,7 @@
 
 #define GDT_ENTRIES_COUNT 3
 
-typedef struct gdt_ptr
-{
-    uint16_t size;
-    size_t address;
-} __attribute__((packed)) gdt_ptr;
+
 
 typedef struct gdt_entry
 {
@@ -20,14 +16,21 @@ typedef struct gdt_entry
     uint8_t base_high;
 } __attribute__((packed)) gdt_entry;
 
-extern gdt_entry gdt[GDT_ENTRIES_COUNT];
-extern gdt_ptr gdtPtr;
+typedef struct gdt_descriptor
+{
+    uint16_t size;
+    gdt_entry *address;
+} __attribute__((packed)) gdt_descriptor;
 
-void gdt_set_gate(int num, unsigned long base, unsigned long limit, unsigned char access, unsigned char gran);
+
+extern gdt_entry gdt[GDT_ENTRIES_COUNT];
+extern gdt_descriptor gdtPtr;
+
+void gdt_set_gate(uint16_t num, uint32_t base, uint32_t limit, uint8_t access, uint8_t gran);
 void gdt_install();
 
 void check_gdt_loaded();
 
-extern void gdt_flush();
+extern void _gdt_flush();
 
 

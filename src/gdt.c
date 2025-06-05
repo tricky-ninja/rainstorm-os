@@ -2,9 +2,9 @@
 #include "printf.h"
 
 gdt_entry gdt[GDT_ENTRIES_COUNT];
-gdt_ptr   gdtPtr;
+gdt_descriptor gdtPtr;
 
-void gdt_set_gate(int num, unsigned long base, unsigned long limit, unsigned char access, unsigned char gran)
+void gdt_set_gate(uint16_t num, uint32_t base, uint32_t limit, uint8_t access, uint8_t gran)
 {
     gdt[num].base_low = (base & 0xffff);
     gdt[num].base_middle = ((base >> 16) & 0xFF);
@@ -20,7 +20,7 @@ void gdt_set_gate(int num, unsigned long base, unsigned long limit, unsigned cha
 void gdt_install()
 {
     gdtPtr.size = (sizeof(gdt_entry) * GDT_ENTRIES_COUNT) - 1;
-    gdtPtr.address = (size_t)&gdt;
+    gdtPtr.address = gdt;
 
     serial_printf("Address of gdt: 0x%08x\n", gdtPtr.address);
 
@@ -30,11 +30,11 @@ void gdt_install()
 
     gdt_set_gate(2, 0, 0xFFFFFFFF, 0x92, 0xCF);
 
-    gdt_flush();
+    _gdt_flush();
 }
 
 void check_gdt_loaded(void) {
-    gdt_ptr current;
+    gdt_descriptor current;
     // Copy GDTR into our struct
     asm volatile("sgdt %0" : "=m"(current));
 

@@ -2,6 +2,7 @@ PROJECT_NAME = Rainstorm
 OUTPUT = $(PROJECT_NAME).iso
 SRC_DIR = src
 BUILD_DIR = build
+TOOLS_DIR = tools
 ISO_DIR = $(BUILD_DIR)/$(PROJECT_NAME)
 
 ASM = nasm

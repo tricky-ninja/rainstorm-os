@@ -2,5 +2,5 @@
 
 #include <stdint.h>
 
-uint8_t i686_read_port_byte(uint16_t port);
-void i686_write_port_byte(uint16_t port, uint8_t data);
+uint8_t read_portb(uint16_t port);
+void write_portb(uint16_t port, uint8_t data);

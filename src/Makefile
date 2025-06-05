@@ -20,6 +20,9 @@ $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c | create
 	$(CC) $(CFLAGS) -c $< -o $@
 
 # Assemble ASM sources (ensure output directory exists)
-$(BUILD_DIR)/%.asm.o: $(SRC_DIR)/%.asm | create
+$(BUILD_DIR)/%.asm.o: $(SRC_DIR)/%.asm $(SRC_DIR)/isr.inc | create
 	@mkdir -p $(dir $@)
 	$(ASM)  $(ASMFLAGS) -o $@ $<
+
+$(SRC_DIR)/isr.inc: $(TOOLS_DIR)/gen_isr.py
+	python3 $< asm > $@
