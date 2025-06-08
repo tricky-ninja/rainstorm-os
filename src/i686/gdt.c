@@ -1,4 +1,4 @@
-#include "gdt.h"
+#include "i686/gdt.h"
 #include "printf.h"
 
 gdt_entry gdt[GDT_ENTRIES_COUNT];

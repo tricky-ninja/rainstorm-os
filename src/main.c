@@ -1,13 +1,19 @@
 #include <stdint.h>
 #include <stddef.h>
-#include "vga.h"
+#include "i686/drivers/screen/vga.h"
 #include "printf.h"
-#include "serial.h"
-#include "gdt.h"
-#include "idt.h"
-#include "isr.h"
+#include "i686/drivers/serial/serial.h"
+#include "i686/gdt.h"
+#include "i686/idt.h"
+#include "i686/isr.h"
+#include "i686/irq.h"
+#include "i686/io.h"
+#include "i686/drivers/pic/pic.h"
+#include "i686/drivers/keyboard/keyboard.h"
 
 void kstart(void);
+
+
 
 void halt()
 {
@@ -52,14 +58,19 @@ void kstart()
     gdt_install();
     check_gdt_loaded();
     printf("[+] GDT initialised, details sent to serial\n");
+    printf("[+] Initialising Programable Interrupt Controller\n");
+    PIC_configure(0x20, 0x28);
     printf("[+] Registering interrupt handlers\n");
     idt_install();
     isr_install();
+    irq_install();
+    irq_register_handler(1, keyboard_irq_handler);
+    io_enableInterrupts();
     printf("[+] Testing interrupts...\n\n");
-    asm("int $0x1");
-    asm("int $0x2");
-    asm("int $0x3");
-    asm("int $0x4");
+    asm("int $0x73");
+    asm("int $0x72");
+    asm("int $0x71");
+    asm("int $0x70");
 
 
 halt:

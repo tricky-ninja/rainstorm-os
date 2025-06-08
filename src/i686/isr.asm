@@ -25,7 +25,7 @@ _isr%1:
 
 %endmacro
 
-%include "src/isr.inc"
+%include "src/i686/isr.inc"
 
 _isr_common:
     pusha

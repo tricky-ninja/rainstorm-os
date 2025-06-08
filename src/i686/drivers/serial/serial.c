@@ -1,5 +1,5 @@
-#include "serial.h"
-#include "io.h"
+#include "i686/drivers/serial/serial.h"
+#include "i686/io.h"
 
 void serial_configure_baud_rate(uint16_t com, uint16_t divisor)
 {

@@ -1,5 +1,5 @@
 #pragma once
-#include "idt.h"
+#include "i686/idt.h"
 #include <stdint.h>
 
 typedef struct Registers
@@ -10,7 +10,8 @@ typedef struct Registers
     uint32_t eip, cs, eflags, esp, ss;      // Pushed by cpu
 }__attribute__((packed)) Registers;
 
+typedef void (*ISRHandler)(Registers* regs);
 
-void isr_handler(Registers *regs);
+void isr_register_handler(uint8_t isr, ISRHandler handler);
 
 void isr_install();

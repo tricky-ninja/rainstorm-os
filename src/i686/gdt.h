@@ -4,8 +4,6 @@
 
 #define GDT_ENTRIES_COUNT 3
 
-
-
 typedef struct gdt_entry
 {
     uint16_t limit_low;

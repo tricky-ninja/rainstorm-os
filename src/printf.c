@@ -34,8 +34,8 @@
 #include <stdint.h>
 
 #include "printf.h"
-#include "vga.h"
-#include "serial.h"
+#include "i686/drivers/screen/vga.h"
+#include "i686/drivers/serial/serial.h"
 
 
 // define this globally (e.g. gcc -DPRINTF_INCLUDE_CONFIG_H ...) to include the
@@ -49,7 +49,7 @@
 
 void _putchar(char character)
 {
- VGA_print_char(character, g_currentContext.color);
+ VGA_print_char(character, VGA_DEFAULT_COLOR);
 }
 
 void _putchar_serial(char character)

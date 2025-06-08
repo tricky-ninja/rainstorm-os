@@ -1,4 +1,4 @@
-#include "idt.h"
+#include "i686/idt.h"
 #include "memory.h"
 
 idt_entry idt[256];
@@ -18,7 +18,5 @@ void idt_install()
     idtPtr.address = idt;
 
     memset(&idt, 0, sizeof(idt_entry) * 256);
-
-    
     _idt_load();
 }

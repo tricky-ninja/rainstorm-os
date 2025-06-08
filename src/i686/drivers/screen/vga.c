@@ -1,6 +1,6 @@
-#include "vga.h"
+#include "i686/drivers/screen/vga.h"
 #include "memory.h"
-#include "io.h"
+#include "i686/io.h"
 
 void VGA_set_cursor(uint8_t csrX, uint8_t csrY)
 {
