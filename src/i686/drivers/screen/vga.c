@@ -74,6 +74,7 @@ void VGA_print_char(char character, uint8_t attribute)
   else if (character == '\b')
   {
    if (g_currentContext.csrX != 0) g_currentContext.csrX--;
+  
    uint32_t offset = csr_to_offset(g_currentContext.csrX, g_currentContext.csrY);
    memset(g_currentContext.videoAddress + offset, VGA_BLANK, 1);
    memset(g_currentContext.videoAddress + offset + 1, attribute, 1);

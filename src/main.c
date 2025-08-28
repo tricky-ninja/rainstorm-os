@@ -71,7 +71,7 @@ void kstart()
     asm("int $0x72");
     asm("int $0x71");
     asm("int $0x70");
-
+    // main_menu();
 
 halt:
     halt();
