@@ -10,6 +10,8 @@
 #include "i686/io.h"
 #include "i686/drivers/pic/pic.h"
 #include "i686/drivers/keyboard/keyboard.h"
+#include <stdbool.h>
+#include "memory.h"
 
 void kstart(void);
 
@@ -25,7 +27,8 @@ void halt()
 
 void main_menu()
 {
-    VGA_clear(VGA_DEFAULT_COLOR);
+    VGA_set_color(VGA_HACKER_COLOR);
+    VGA_clear();
 
     printf("+----------------------------------------------------------+\n");
     printf("|              Rainstorm OS [Version 0.1.0]                |\n");
@@ -33,13 +36,37 @@ void main_menu()
     printf("|                                                          |\n");
     printf("|   > Welcome to Rainstorm OS                              |\n");
     printf("|   > Type 'help' to get started                           |\n");
-    printf("+----------------------------------------------------------+\n");
-    printf("\n>");
+    printf("+----------------------------------------------------------+\n\n");
+    char cmd[256];
+    while (true)
+    {
+        printf(">");
+        keyboard_get_line(cmd, 256);
+        if (!strcmp(cmd, "help"))
+        {
+            printf("clear - clears screen\nprompt - displays welcome prompts");
+        }
+        else if (!strcmp(cmd, "clear"))
+        {
+            VGA_clear();
+        }
+        else if (!strcmp(cmd, "prompt"))
+        {
+            printf("+----------------------------------------------------------+\n");
+            printf("|              Rainstorm OS [Version 0.1.0]                |\n");
+            printf("|       (c) 2026 TrickyNinja All rights reserved.          |\n");
+            printf("|                                                          |\n");
+            printf("|   > Welcome to Rainstorm OS                              |\n");
+            printf("|   > Type 'help' to get started                           |\n");
+            printf("+----------------------------------------------------------+\n\n");
+        }
+    }
 }
 
 void kstart()
 {
-    VGA_clear(VGA_DEFAULT_COLOR);
+    VGA_set_color(VGA_DEFAULT_COLOR);
+    VGA_clear();
     VGA_enable_cursor_blinking();
 
     printf("[+] Trying to initialise serial\n");
@@ -47,12 +74,13 @@ void kstart()
     if (status != 0)
     {
         printf("[-] Serial not initialised. Error code: %d\n", status);
-        printf("[!] Halting kernel\n");
-        goto halt;
     }
 
-    printf("[+] Serial device COM1 initialised\n");
-    serial_printf("[+] Serial device COM1 initialised\n");
+    else {
+
+        printf("[+] Serial device COM1 initialised\n");
+        serial_printf("[+] Serial device COM1 initialised\n");
+    }
 
     printf("[+] Trying to initialise gdt\n");
     gdt_install();
@@ -64,14 +92,11 @@ void kstart()
     idt_install();
     isr_install();
     irq_install();
-    irq_register_handler(1, keyboard_irq_handler);
+    keyboard_init();
     io_enableInterrupts();
-    printf("[+] Testing interrupts...\n\n");
-    asm("int $0x73");
-    asm("int $0x72");
-    asm("int $0x71");
-    asm("int $0x70");
-    // main_menu();
+    printf("Press enter to continue...\n");
+    keyboard_get_line(NULL, 0);
+    main_menu();
 
 halt:
     halt();

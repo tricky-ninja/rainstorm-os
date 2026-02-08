@@ -53,12 +53,14 @@ void isr_handler(Registers* regs) {
     else if (int_num >= 32)
     {
         printf("Unhandled Interrupt: %d\n", int_num);
+        serial_printf("Unhandled Interrupt: %d\n", int_num);
         return;
     }
 
     else
     {
         printf("[CRITICAL] Unhandled Excception: %s\n", g_Exceptions[int_num]);
+        serial_printf("[CRITICAL] Unhandled Excception: %s\n", g_Exceptions[int_num]);
         io_disableInterrupts();
         asm("hlt"); 
     }

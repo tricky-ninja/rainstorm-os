@@ -49,7 +49,7 @@
 
 void _putchar(char character)
 {
- VGA_print_char(character, VGA_DEFAULT_COLOR);
+ VGA_print_char(character, 0);
 }
 
 void _putchar_serial(char character)

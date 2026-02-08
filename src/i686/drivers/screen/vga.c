@@ -31,14 +31,9 @@ uint32_t VGA_get_cursor_offset()
   return offset * 2;
 }
 
-void VGA_clear(uint8_t color)
+void VGA_clear()
 {
-  if (!color)
-    color = g_currentContext.color;
-
-  g_currentContext.color = color;
-
-  uint16_t blank = 0x20 | (color << 8);
+  uint16_t blank = 0x20 | (g_currentContext.color << 8);
 
   memsetw((uint16_t *)g_currentContext.videoAddress, blank, g_currentContext.maxCols * g_currentContext.maxRows);
   VGA_set_cursor(0, 0);
@@ -111,6 +106,11 @@ void VGA_enable_cursor_blinking()
 
   write_portb(VGA_CTRL_REGISTER, VGA_CURSOR_END_REG);
   write_portb(VGA_DATA_REGISTER, 15 & 0x1F);
+}
+
+void VGA_set_color(uint8_t color)
+{
+  g_currentContext.color = color;
 }
 
 // Helper functions

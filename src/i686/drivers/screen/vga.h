@@ -10,6 +10,8 @@
 #define VGA_OFFSET_LOW 0x0f
 #define VGA_OFFSET_HIGH 0x0e
 #define VGA_DEFAULT_COLOR 0x07
+#define VGA_LIGHT_COLOR 0xF0  // TODO: Bit 7 causes blinking on real hardware (Lookup vga blinking real hardware)
+#define VGA_HACKER_COLOR 0x02
 #define VGA_BLANK (0x20 | (g_currentContext.color << 8))
 
 typedef struct
@@ -59,11 +61,13 @@ void VGA_print_char_at(char character, int col, int row, uint8_t color);
 */
 void VGA_print_char(char character, uint8_t color);
 
-void VGA_clear(uint8_t color);
+void VGA_clear();
 
 uint32_t VGA_scroll(uint8_t amt);
 
 void VGA_enable_cursor_blinking();
+
+void VGA_set_color(uint8_t color);
 
 // Helper functions
 

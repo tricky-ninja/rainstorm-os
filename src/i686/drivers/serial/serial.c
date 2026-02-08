@@ -1,5 +1,8 @@
 #include "i686/drivers/serial/serial.h"
 #include "i686/io.h"
+#include <stdbool.h>
+
+bool isInitialied = false;
 
 void serial_configure_baud_rate(uint16_t com, uint16_t divisor)
 {
@@ -23,6 +26,7 @@ int serial_init(uint16_t com)
     }
 
     write_portb(SERIAL_MODEM_COMMAND_PORT(com), 0x7);
+    isInitialied = true;
     return 0;
 
 }
@@ -33,6 +37,7 @@ int is_transmit_empty(uint16_t com) {
 
 void serial_write(uint16_t com, char ch)
 {
+    if (!isInitialied) return;
     while (is_transmit_empty(com)==0);
     write_portb(SERIAL_DATA_PORT(com), ch);   
 }
