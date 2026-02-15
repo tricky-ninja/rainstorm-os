@@ -35,30 +35,19 @@ static VGA_Context g_currentContext = {
     0,
 };
 
-/*
-  Sets the vga cursor position
-  @params:
-    offset - the offset in the vga array where the cursor needs to be
-*/
+
 void VGA_set_cursor(uint8_t csrX, uint8_t csrY);
 uint32_t VGA_get_cursor_offset();
 
-/*
-  Prints a charcater at a specific row and column of the screen and moves the cursor there
-  @params:
-    character - the ascii character to be printed
-    col - the column where the character needs to be printed
-    row - the row where the character needs to be printed
-    color - the background and foreground color information
-*/
+/** 
+*  Prints a charcater at a specific row and column of the screen and moves the cursor there
+*  @param character Ascii character to be printed
+*  @param col Column where the character needs to be printed
+*  @param row Row where the character needs to be printed
+*  @param color Background and foreground color information
+**/
 void VGA_print_char_at(char character, int col, int row, uint8_t color);
 
-/*
-  Prints a charcater at the cursor location
-  @params:
-    character - the ascii character to be printed
-    color - the background and foreground color information
-*/
 void VGA_print_char(char character, uint8_t color);
 
 void VGA_clear();
@@ -70,5 +59,4 @@ void VGA_enable_cursor_blinking();
 void VGA_set_color(uint8_t color);
 
 // Helper functions
-
 uint32_t csr_to_offset(uint8_t col, uint8_t row);

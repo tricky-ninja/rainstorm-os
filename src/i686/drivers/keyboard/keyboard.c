@@ -81,6 +81,13 @@ void keyboard_irq_handler()
         inp_buffer[buffer_len++] = '\0';
         return;
     }
+    if (ch == '\b')
+    {
+        if (buffer_len == 0) return;
+        inp_buffer[--buffer_len] = '\0';
+        printf("\b");
+        return;
+    }
     printf("%c", ch);
     inp_buffer[buffer_len++] = ch;
 }

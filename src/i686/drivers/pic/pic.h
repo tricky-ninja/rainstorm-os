@@ -18,10 +18,11 @@ typedef enum PIC_ICW1
     PIC_ICW1_INIT   = 0x10,
 } PIC_ICW1;
 
+// offset1 and offset2 are added to the interupt number from the master and slave pic respectively
 void PIC_configure(uint8_t offset1, uint8_t offset2);
 
-void PIC_setMask(uint8_t irq);
-void PIC_clearMask(uint8_t irq);
+void PIC_setMask(uint8_t irq);  // disable an irq
+void PIC_clearMask(uint8_t irq);    // enable an irq
 
 void PIC_disable();
 void PIC_enable();

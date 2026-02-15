@@ -50,7 +50,7 @@ void isr_handler(Registers* regs) {
     if (g_ISRHandlers[int_num] != NULL)
         g_ISRHandlers[int_num](regs);
     
-    else if (int_num >= 32)
+    else if (int_num >= 0x20)   // 0x20 --> 32
     {
         printf("Unhandled Interrupt: %d\n", int_num);
         serial_printf("Unhandled Interrupt: %d\n", int_num);

@@ -39,17 +39,17 @@ void VGA_clear()
   VGA_set_cursor(0, 0);
 }
 
-void VGA_print_char_at(char character, int col, int row, uint8_t attribute)
+void VGA_print_char_at(char character, int col, int row, uint8_t color)
 {
   VGA_set_cursor(col, row);
-  VGA_print_char(character, attribute);
+  VGA_print_char(character, color);
 }
 
-void VGA_print_char(char character, uint8_t attribute)
+void VGA_print_char(char character, uint8_t color)
 {
-  if (!attribute)
+  if (!color)
   {
-    attribute = g_currentContext.color;
+    color = g_currentContext.color;
   }
 
   if (character == '\n')
@@ -72,7 +72,7 @@ void VGA_print_char(char character, uint8_t attribute)
   
    uint32_t offset = csr_to_offset(g_currentContext.csrX, g_currentContext.csrY);
    memset(g_currentContext.videoAddress + offset, VGA_BLANK, 1);
-   memset(g_currentContext.videoAddress + offset + 1, attribute, 1);
+   memset(g_currentContext.videoAddress + offset + 1, color, 1);
   }
 
   /* Any character greater than or equal to space is printable */
@@ -80,7 +80,7 @@ void VGA_print_char(char character, uint8_t attribute)
   {
     uint32_t offset = csr_to_offset(g_currentContext.csrX, g_currentContext.csrY);
     memset(g_currentContext.videoAddress + offset, character, 1);
-    memset(g_currentContext.videoAddress + offset + 1, attribute, 1);
+    memset(g_currentContext.videoAddress + offset + 1, color, 1);
     g_currentContext.csrX++;
   }
   VGA_set_cursor(g_currentContext.csrX, g_currentContext.csrY);

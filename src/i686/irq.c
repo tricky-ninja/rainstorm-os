@@ -9,11 +9,6 @@
 
 IRQHandler g_IRQHandlers[16];
 
-void timer(Registers *regs)
-{
-    printf(".");
-}
-
 void irq_handler(Registers *regs)
 {
     if (g_IRQHandlers[regs->interrupt_num - 0x20] == NULL) printf("Unhandled IRQ %d recieved\n", regs->interrupt_num);
@@ -35,8 +30,6 @@ void irq_install()
     for (uint8_t i =0; i < 16; i++)
         isr_register_handler(PIC_REMAP_OFFSET + i, irq_handler);
 
-    irq_register_handler(0, timer);
-    PIC_setMask(0);
 }
 
 void irq_register_handler(uint8_t irq, IRQHandler handler)

@@ -28,19 +28,20 @@ _isr%1:
 %include "src/i686/isr.inc"
 
 _isr_common:
-    pusha
+    pusha   ; push all the registers
 
     xor eax, eax
     mov ax, ds
-    push eax
+    push eax    ; push ds register
 
+    ; change to kernel data segment
     mov ax, 0x10
     mov ds, ax
     mov es, ax
     mov fs, ax
     mov gs, ax
 
-    push esp
+    push esp    ; pass the registers as a pointer
     call isr_handler
     add esp, 4
 
