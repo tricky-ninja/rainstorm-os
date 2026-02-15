@@ -13,10 +13,10 @@
 #include <stdbool.h>
 #include "memory.h"
 #include "i686/drivers/timer/pit.h"
+#include "multiboot.h"
 
-void kstart(void);
 
-
+void kstart(uint32_t magic, multiboot_info*);
 
 void halt()
 {
@@ -31,7 +31,7 @@ IRQHandler timer_handler(Registers *regs)
     printf(".");
 }
 
-void main_menu()
+void main_menu(multiboot_info *mb_info)
 {
     VGA_set_color(VGA_HACKER_COLOR);
     VGA_clear();
@@ -50,7 +50,7 @@ void main_menu()
         keyboard_get_line(cmd, 256);
         if (!strcmp(cmd, "help"))
         {
-            printf("clear - clears screen\nprompt - displays welcome prompts\n");
+            printf("clear - clears screen\nprompt - displays welcome prompts\nbootinfo - displays information about the system\nmeminfo - display memory map");
         }
         else if (!strcmp(cmd, "clear"))
         {
@@ -63,6 +63,41 @@ void main_menu()
             if (strcmp(cmd, "yes")) continue; // if not yes continue the loop
             PIC_disable();
         }
+        else if (!strcmp(cmd, "bootinfo"))
+        {
+            printf("\nFlags: 0x%x\n", mb_info->flags);
+            printf("Lower memory: 0x%x\n", mb_info->mem_lower);
+            printf("Upper memory: 0x%x\n", mb_info->mem_upper);
+            printf("Boot device: 0x%x\n", mb_info->boot_device);
+            if (mb_info->flags & (1 << 2)) printf("Cmdline: %s\n", (char*)mb_info->cmdline);
+            printf("Module count: 0x%x\n", mb_info->mods_count);
+            printf("Modules address: 0x%x\n", mb_info->mods_addr);
+            printf("Memory map length: 0x%x\n", mb_info->mmap_length);
+            printf("Memory map address: 0x%x\n", mb_info->mmap_addr);
+            if (mb_info->flags & (1 << 9)) printf("Bootloader: %s\n\n", (char*)mb_info->boot_loader_name);
+        }
+        else if (!strcmp(cmd, "meminfo"))
+        {
+            uint8_t *ptr = (uint8_t*)mb_info->mmap_addr;
+            uint8_t *end = ptr + mb_info->mmap_length;
+
+            printf("Type = 1 - available otherwise reserved\n");
+            while (ptr < end)
+            {
+                multiboot_mmap_entry *entry = (multiboot_mmap_entry*)ptr;
+                uint64_t start = entry->addr;
+                uint64_t end = entry->addr + entry->len;
+                printf("0x%x%08x to 0x%x%08x\t-\t%u, Size: %uKB\n",
+                       (uint32_t)(start >> 32),
+                       (uint32_t)start,
+                       (uint32_t)(end >> 32),
+                       (uint32_t)end, 
+                       entry->type,
+                       (uint32_t)(entry->len/1024));
+                ptr += entry->size + sizeof(entry->size);
+            }
+
+        }
         else if (!strcmp(cmd, "prompt"))
         {
             printf("+----------------------------------------------------------+\n");
@@ -73,15 +108,22 @@ void main_menu()
             printf("|   > Type 'help' to get started                           |\n");
             printf("+----------------------------------------------------------+\n\n");
         }
+        else 
+        {
+            printf("%s is not a valid command\n", cmd);
+        }
     }
 }
 
-void kstart()
+void kstart(uint32_t magic, multiboot_info *mb_info)
 {
+    if (magic != MULTIBOOT_BOOTLOADER_MAGIC) goto halt; // not properly booted
+    
     VGA_set_color(VGA_DEFAULT_COLOR);
     VGA_clear();
     VGA_enable_cursor_blinking();
 
+    printf("Magic=0x%x\n", magic);
     printf("Hello from Rainstorm OS\n");
     printf("[+] Trying to initialise serial\n");
     int status = serial_init(SERIAL_COM1_BASE);
@@ -113,9 +155,9 @@ void kstart()
     keyboard_init();    // Configure the keyboard driver
     io_enableInterrupts();  // Enable interupts
 
-    printf("Press enter to continue...\n");
-    keyboard_get_line(NULL, 0);
-    main_menu();
+    // printf("Press enter to continue...\n");
+    // keyboard_get_line(NULL, 0);
+    main_menu(mb_info);
 
 halt:
     halt();

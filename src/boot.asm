@@ -2,7 +2,7 @@ BITS 32
 
 MULTIBOOT_MAGIC equ 0x1badb002
 MULTIBOOT_FLAG_ALIGN equ 1
-MULTIBOOT_FLAG_MEMORY equ 0 << 1
+MULTIBOOT_FLAG_MEMORY equ 1 << 1
 MULTIBOOT_FLAG_VIDEO equ 0 << 2
 MULTIBOOT_FLAG equ MULTIBOOT_FLAG_ALIGN | MULTIBOOT_FLAG_MEMORY | MULTIBOOT_FLAG_VIDEO
 MULTIBOOT_CHECKSUM equ -(MULTIBOOT_MAGIC + MULTIBOOT_FLAG)
@@ -33,8 +33,11 @@ _start:
     cli
     mov esp, stack_start
     mov ebp, esp
+    mov esi, eax    ; multiboot magic
     jmp _clear_bss
 bss_cleared:
+    push ebx    ; multiboot info
+    push esi    ; multiboot magic
     call kstart
     hlt
 
