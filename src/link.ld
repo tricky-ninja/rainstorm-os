@@ -3,7 +3,8 @@ ENTRY(_start)
 
 SECTIONS
 {
-    . = 2M;
+    . = 1M;
+    _kernel_start = .;
 
     .multiboot ALIGN(0x1000) :  {
         *(.multiboot)
@@ -26,4 +27,6 @@ SECTIONS
         *(.bss)
         _bss_end = .;
     }
+
+    _kernel_end = ALIGN(0x1000);
 }

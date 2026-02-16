@@ -10,7 +10,7 @@ CC = i686-elf-gcc
 LD = i686-elf-gcc
 
 ASMFLAGS = -f elf32
-CFLAGS = -ffreestanding -Wall -Wextra -I$(SRC_DIR) -g
+CFLAGS = -ffreestanding -Wall -Wextra -I$(SRC_DIR) -I$(SRC_DIR)/utils -g
 LDFLAGS = -T $(SRC_DIR)/link.ld -ffreestanding -nostdlib
 
 include src/Makefile

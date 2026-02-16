@@ -11,14 +11,6 @@
 #define MULTIBOOT_MEMORY_NVS 4
 #define MULTIBOOT_MEMORY_BADRAM 5
 
-char *mem_type_to_string[] = {
-  "Invalid",
-  "Available",
-  "Reserved",
-  "Reserved",
-  "Reserved",
-  "Bad Ram"
-};
 
 // PACK this struct if any field is not uint32_t
 // (https://cgit.git.savannah.gnu.org/cgit/grub.git/tree/doc/multiboot.h?h=multiboot)
