@@ -101,7 +101,9 @@ int vsnprintf_(char* buffer, size_t count, const char* format, va_list va);
  * \return The number of characters that are WRITTEN into the buffer, not counting the terminating null character
  */
 #define vprintf vprintf_
+#define serial_vprintf serial_vprintf_
 int vprintf_(const char* format, va_list va);
+int serial_vprintf_(const char* format, va_list va);
 
 
 /**
