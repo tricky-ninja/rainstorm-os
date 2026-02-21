@@ -18,6 +18,12 @@ SECTIONS
         *(.rodata)
     }
 
+    .shell_modules ALIGN(0x1000) : {
+        _shell_modules_start = .;
+        KEEP(*(.shell_modules))
+        _shell_modules_end = .;
+    }
+
     .data ALIGN(0x1000) : {
         *(.data)
     }

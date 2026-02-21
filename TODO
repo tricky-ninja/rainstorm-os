@@ -1,0 +1,26 @@
+Need to do:
+- Enable paging
+- Virtual memory manager
+- Kernel Heap
+- Context switching and multitasking
+- Usermode (maybe later)
+- Hard disk reading (ATA PIO)
+- FAT32 FileSystem
+- Either Actual VGA graphcis first or multiboot2 first but do both
+
+In future:
+- PCI scanning or switch to APCI and ACPI stuff
+- Networking
+
+Dreams:
+- Graphical gui
+
+DONE:
+- Boot
+- Print stuff to screen
+- Debuging
+- Interupts and PIC based IRQs
+- Keyboard
+- Basic kernel shell
+- Request Memory map from grub
+- Physical memory manager

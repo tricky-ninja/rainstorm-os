@@ -1,0 +1,18 @@
+Memory management:
+  Need a physical memory manager, virtual memory manager and some kinda dynamic allocation and paging enabled
+  physical memory manager doesnt care or know about virtual address spaces, its only task is to keep track of free and used 4kb blocks of memory
+  when memory is requested virtual memory manager gets a virtual address then it asks the physical manager for some amount of pages, which the virtual manager then maps to virtual adress space
+  When enabling paging with a higer half kernel bitmap start and end addresses should be remapped to the appropriate virtual addresses
+
+Interupts and PIC:
+  First we create an interupt discriptor table that routes all the interupts to their respefctive handlers, then every handler will jump to a common isr handler, this will save the registers and jump to c code 
+  from c we check if its an irq given by the pic, if so we call the given irq handler if its an exception we print an unhandled exception, otherwise call the correct isr handler
+  irq handler is registered as an isr handler for every pic interupt, then irq handler calls the respective irq handler
+  pic is remaped from 0x20 and 0x28 respectively for master and slave pic
+
+GDT:
+  GDT is loaded with 3 segments a null segment
+  And a kernel code and data segment spanning the whole 4gb of ram
+
+
+

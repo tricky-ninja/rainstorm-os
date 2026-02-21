@@ -34,8 +34,8 @@
 #include <stdint.h>
 
 #include "printf.h"
-#include "i686/drivers/screen/vga.h"
-#include "i686/drivers/serial/serial.h"
+#include "drivers/x86/screen/vga.h"
+#include "drivers/x86/serial/serial.h"
 
 
 // define this globally (e.g. gcc -DPRINTF_INCLUDE_CONFIG_H ...) to include the
@@ -49,7 +49,7 @@
 
 void _putchar(char character)
 {
- VGA_print_char(character, 0);
+ vga_print_char(character, 0);
 }
 
 void _putchar_serial(char character)
@@ -932,6 +932,16 @@ int vprintf_(const char* format, va_list va)
   char buffer[1];
   return _vsnprintf(_out_char, buffer, (size_t)-1, format, va);
 }
+
+// ADDED CODE
+
+int serial_vprintf_(const char* format, va_list va)
+{
+  char buffer[1];
+  return _vsnprintf(_out_char_serial, buffer, (size_t)-1, format, va);
+}
+
+// END OF ADDED CODE
 
 
 int vsnprintf_(char* buffer, size_t count, const char* format, va_list va)
