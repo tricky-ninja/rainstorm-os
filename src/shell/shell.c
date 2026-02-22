@@ -46,6 +46,7 @@ void shell_launch(char *cmd, multiboot_info *mb_info)
         printf("$ ");
         keyboard_get_line(cmd, 256);
         args = strsplit(cmd, ' ');
+        if (strlen(cmd) == 0) continue;
         if (!strcmp(cmd, "exit"))
             break;
         if (!strcmp(cmd, "help"))

@@ -15,72 +15,90 @@
 #include "memory_utils.h"
 #include "drivers/x86/pic/pic.h"
 
-bool isRecordingInput = false;
-char inp_buffer[256];
-size_t buffer_len;
+static volatile char kbd_buf[KBD_BUF_SIZE];
+static volatile size_t kbd_head = 0;
+static volatile size_t kbd_tail = 0;
 
 const char scancode_to_char[] = {
-  '?', '?', '1', '2', '3', '4', '5',
-  '6', '7', '8', '9', '0', '-', '=',
-  '\b', '?', 'q', 'w', 'e', 'r', 't',
-  'y', 'u', 'i', 'o', 'p', '[', ']',
-  '\n', '?', 'a', 's', 'd', 'f', 'g',
-  'h', 'j', 'k', 'l', ';', '\\', '`',
-  '?', '\\', 'z', 'x', 'c', 'v', 'b',
-  'n', 'm', ',', '.', '/', '?', '?',
-  '?', ' '
-};
-
+    '?', '?', '1', '2', '3', '4', '5',
+    '6', '7', '8', '9', '0', '-', '=',
+    '\b', '?', 'q', 'w', 'e', 'r', 't',
+    'y', 'u', 'i', 'o', 'p', '[', ']',
+    '\n', '?', 'a', 's', 'd', 'f', 'g',
+    'h', 'j', 'k', 'l', ';', '\\', '`',
+    '?', '\\', 'z', 'x', 'c', 'v', 'b',
+    'n', 'm', ',', '.', '/', '?', '?',
+    '?', ' '};
 
 void keyboard_init()
 {
-    memset(inp_buffer, '\0', 256);
-    buffer_len = 0;
+    memset(kbd_buf, '\0', KBD_BUF_SIZE);
+    kbd_head = 0;
+    kbd_tail = 0;
     irq_register_handler(1, keyboard_irq_handler);
 }
 
-// TODO: make a proper handler that handles deadlocks, and race conditions
 void keyboard_irq_handler()
 {
     uint8_t scancode = read_portb(0x60);
-    if (scancode > 57) return;
-    if (isRecordingInput == false) return;
-
-    if (buffer_len >= 255) 
-    {
-        memset(inp_buffer, '\0', 256);
-        buffer_len = 0;
-    }
+    if (scancode > 57)
+        return;
 
     char ch = scancode_to_char[scancode];
-    if (ch == '\n') 
-    {
-        isRecordingInput = false;
-        printf("\n");
-        inp_buffer[buffer_len++] = '\0';
+    if (!ch)
         return;
-    }
-    if (ch == '\b')
-    {
-        if (buffer_len == 0) return;
-        inp_buffer[--buffer_len] = '\0';
-        printf("\b");
+
+    size_t next = (kbd_head + 1) % KBD_BUF_SIZE;
+
+    if (next == kbd_tail)
         return;
+    kbd_buf[kbd_head] = ch;
+    kbd_head = next;
+}
+
+char keyboard_get_char()
+{
+    while (kbd_tail == kbd_head)
+    {
+        asm volatile("hlt");
     }
-    printf("%c", ch);
-    inp_buffer[buffer_len++] = ch;
+
+    io_disableInterrupts();
+
+    char ch = kbd_buf[kbd_tail];
+    kbd_tail = (kbd_tail + 1) % KBD_BUF_SIZE;
+
+    io_enableInterrupts();
+    return ch;
 }
 
 void keyboard_get_line(char *buffer, size_t length)
 {
-    isRecordingInput = true;
+    if (buffer != NULL && length < 2) return;
+    size_t i = 0;
 
-    while (isRecordingInput) {};
+    // If length is 0 then this will loop till new line (this case will only be reached if buffer is NULL so in this case its just echo everything but dont store)
+    while (i < length - 1)
+    {
+        char ch = keyboard_get_char();
 
- 
-    if (length > buffer_len) length = buffer_len;
-    if (buffer != NULL) memcpy(buffer, inp_buffer, length);
+        if (ch == '\b')
+        {
+            if (i > 0)
+            {
+                i--;
+                printf("%c", ch); 
+            }
+            continue;
+        }
 
-    memset(inp_buffer, '\0', 256);
-    buffer_len = 0;
+        printf("%c", ch);
+
+        if (ch == '\n')
+            break;
+
+        if (buffer != NULL) buffer[i++] = ch;
+    }
+
+    if (buffer != NULL) buffer[i] = '\0';
 }

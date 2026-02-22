@@ -12,9 +12,13 @@
 #include <stdint.h>
 #include "arch/i686/irq.h"
 
+#define KBD_BUF_SIZE 256
+
 void keyboard_init();
 
 void keyboard_irq_handler();
+
+char keyboard_get_char();
 
 /** Temporary basic function that waits for keyboard input until a newline
 *   @param buffer Typed ascii characters are stored here, can be NULL

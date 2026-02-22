@@ -52,8 +52,8 @@ void kstart(uint32_t magic, multiboot_info *mb_info)
     shell_init();
     if (!strcmp(mb_info->cmdline, "debug=true"))
     {
-        printf("Press enter to continue...\n");
-        keyboard_get_line(NULL, 0);
+        printf("Press any key to continue...\n");
+        keyboard_get_char();
     }
 
     vga_clear();
