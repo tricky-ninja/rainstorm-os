@@ -3,10 +3,10 @@ Need to do:
 - Virtual memory manager
 - Kernel Heap
 - Context switching and multitasking
-- Usermode (maybe later)
 - Hard disk reading (ATA PIO)
 - FAT32 FileSystem
 - Either Actual VGA graphcis first or multiboot2 first but do both
+- Usermode
 
 In future:
 - PCI scanning or switch to APCI and ACPI stuff

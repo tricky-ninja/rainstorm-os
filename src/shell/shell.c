@@ -50,12 +50,14 @@ void shell_launch(char *cmd, multiboot_info *mb_info)
             break;
         if (!strcmp(cmd, "help"))
         {
+            printf("-----------------------------------------------\n");
             for (int i = 0; i < loaded_modules_count; i++)
             {
                 printf("%s - %s\n", modules[i].name, modules[i].desc);
             }
             printf("help - Display this menu\n");
             printf("exit - Exit kernel shell\n");
+            printf("-----------------------------------------------\n");
             continue;
         }
         exit_code = shell_run(cmd, args, mb_info);

@@ -13,6 +13,10 @@ Interupts and PIC:
 GDT:
   GDT is loaded with 3 segments a null segment
   And a kernel code and data segment spanning the whole 4gb of ram
+  When implementing usermode gdt will need 3 more segments which are user code and data segments
+  and a task state segment
+
+
 
 
 
