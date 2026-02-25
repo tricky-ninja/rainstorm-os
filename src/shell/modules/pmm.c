@@ -5,15 +5,16 @@
 #include "drivers/x86/keyboard/keyboard.h"
 #include "memory_utils.h"
 
-static shell_module_handler_fn handler(char *args, multiboot_info *mb_info)
+static shell_module_handler_return_t handler(char *args, multiboot_info *mb_info)
 {
+    (void)mb_info;
 
     if (args == NULL)
     {
         printf("Usage: pmm <allocate/stats>\n");
         return 0;
     }
-
+    strsplit(args, ' ');
     if (!strcmp(args, "allocate"))
     {
         phys_addr_t addr = pmm_alloc_page();
@@ -31,10 +32,14 @@ static shell_module_handler_fn handler(char *args, multiboot_info *mb_info)
         printf("Total pages: %u\n", total_pages);
         printf("Free pages: %u\n", free_before);
         printf("Total RAM: %u MB\n", total_ram_mb);
-        printf("Free RAM: %u MB\n", total_ram_mb);
+        printf("Free RAM: %u MB\n", free_ram_mb);
 
         return 0;
     }
+
+    printf("Usage: pmm <allocate/stats>\n");
+
+    return 0;
 }
 
 SHELL_MODULE_REGISTER(

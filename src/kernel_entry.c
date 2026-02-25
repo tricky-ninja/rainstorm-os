@@ -16,12 +16,13 @@
 #include "multiboot.h"
 #include "memory/physical_memory.h"
 #include "klog.h"
+#include "shell/shell.h"
 
 extern uint8_t _kernel_start;
 extern uint8_t _kernel_end;
 
-static phys_addr_t kernel_start_addr;
-static phys_addr_t kernel_end_addr;
+static uint8_t *kernel_start_addr;
+static uint8_t *kernel_end_addr;
 
 void kstart(uint32_t magic, multiboot_info *mb_info);
 
@@ -50,7 +51,7 @@ void kstart(uint32_t magic, multiboot_info *mb_info)
     memory_init(mb_info);
     device_init();
     shell_init();
-    if (!strcmp(mb_info->cmdline, "debug=true"))
+    if (!strcmp((char*)mb_info->cmdline, "debug=true"))
     {
         printf("Press any key to continue...\n");
         keyboard_get_char();
@@ -74,12 +75,12 @@ static void early_init(multiboot_info *mb_info)
     int status = serial_init(SERIAL_COM1_BASE);
     if (status != 0) printf("[-] Serial not initialised\n");
 
-    if (!strcmp(mb_info->cmdline, "debug=true"))
+    if (!strcmp((char*)mb_info->cmdline, "debug=true"))
     {
         klog_set_debug(true);
         klog_set_level(klog_level_debug);
     }
-    else if (!strcmp(mb_info->cmdline, "release=true"))
+    else if (!strcmp((char*)mb_info->cmdline, "release=true"))
     {
         klog_set_debug(false);
         klog_set_level(klog_level_info);
@@ -112,9 +113,9 @@ static void memory_init(multiboot_info *mb_info)
     kernel_start_addr = &_kernel_start;
     kernel_end_addr = &_kernel_end;
 
-    klog_debug("kernel_start=0x%x", kernel_start_addr);
-    klog_debug("kernel_end=0x%x", kernel_end_addr);
-    pmm_init(mb_info, kernel_start_addr, kernel_end_addr);
+    klog_debug("kernel_start=0x%x", (phys_addr_t)kernel_start_addr);
+    klog_debug("kernel_end=0x%x", (phys_addr_t)kernel_end_addr);
+    pmm_init(mb_info, (phys_addr_t)kernel_start_addr, (phys_addr_t)kernel_end_addr);
     klog_info("Total memory: %uKB", pmm_get_total_size() / 1024);
     klog_info("Total usable memory: %uKB", pmm_get_free_size() / 1024);
 

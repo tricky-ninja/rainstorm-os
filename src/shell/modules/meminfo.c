@@ -2,8 +2,10 @@
 #include "drivers/x86/screen/vga.h"
 #include "printf.h"
 
-static shell_module_handler_fn handler(char *args, multiboot_info *mb_info)
+static shell_module_handler_return_t handler(char *args, multiboot_info *mb_info)
 {
+    (void)args;
+
     uint8_t *ptr = (uint8_t *)mb_info->mmap_addr;
     uint8_t *end = ptr + mb_info->mmap_length;
 

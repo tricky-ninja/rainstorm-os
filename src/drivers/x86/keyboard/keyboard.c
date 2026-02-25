@@ -15,7 +15,7 @@
 #include "memory_utils.h"
 #include "drivers/x86/pic/pic.h"
 
-static volatile char kbd_buf[KBD_BUF_SIZE];
+static char kbd_buf[KBD_BUF_SIZE];
 static volatile size_t kbd_head = 0;
 static volatile size_t kbd_tail = 0;
 
@@ -63,12 +63,10 @@ char keyboard_get_char()
         asm volatile("hlt");
     }
 
-    io_disableInterrupts();
 
     char ch = kbd_buf[kbd_tail];
     kbd_tail = (kbd_tail + 1) % KBD_BUF_SIZE;
 
-    io_enableInterrupts();
     return ch;
 }
 

@@ -4,8 +4,11 @@
 #include "memory/physical_memory.h"
 #include "drivers/x86/keyboard/keyboard.h"
 
-static shell_module_handler_fn handler(char *args, multiboot_info *mb_info)
+static shell_module_handler_return_t handler(char *args, multiboot_info *mb_info)
 {
+       (void)args;
+       (void)mb_info;
+
        printf("========== PMM TEST BEGIN ==========\n");
 
        uint32_t total_pages = pmm_get_total_size() / PAGE_SIZE;
@@ -94,7 +97,7 @@ static shell_module_handler_fn handler(char *args, multiboot_info *mb_info)
        printf("\n[TEST] Exhaustion test\n");
 
        uint32_t alloc_count = 0;
-       phys_addr_t pages[1024]; // adjust size if needed
+       phys_addr_t pages[1024];
 
        while (alloc_count < 1024)
        {
@@ -107,7 +110,6 @@ static shell_module_handler_fn handler(char *args, multiboot_info *mb_info)
 
        printf("Allocated %u pages before stop\n", alloc_count);
 
-       // Free them back
        for (uint32_t i = 0; i < alloc_count; i++)
               pmm_free_page(pages[i]);
 
@@ -117,10 +119,10 @@ static shell_module_handler_fn handler(char *args, multiboot_info *mb_info)
        keyboard_get_char();
        printf("\n[TEST] Invalid frees\n");
 
-       pmm_free_page(12345); // unaligned
+       pmm_free_page(12345); 
        printf("Unaligned free did not crash\n");
 
-       pmm_free_page(0xFFFFFFFF); // out of bounds
+       pmm_free_page(0xFFFFFFFF); 
        printf("Out of bounds free did not crash\n");
 
        printf("\n[TEST] Final consistency\n");

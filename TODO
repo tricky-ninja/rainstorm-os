@@ -1,8 +1,10 @@
 Need to do:
-- Enable paging
+- Proper lock handling (cli/sti for now, handle nested locks) 
+- 64 bit port
+- Enable paging (Identity mapping for start, higher half kernel later)
 - Virtual memory manager
 - Kernel Heap
-- Context switching and multitasking
+- Context switching and multitasking (cooperative)
 - Hard disk reading (ATA PIO)
 - FAT32 FileSystem
 - Either Actual VGA graphcis first or multiboot2 first but do both

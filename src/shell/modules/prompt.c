@@ -1,7 +1,7 @@
 #include "shell/shell.h"
 #include "printf.h"
 
-static int handler(const char *args, multiboot_info *mb_info)
+static shell_module_handler_return_t handler(char *args, multiboot_info *mb_info)
 {
     (void)args;
     (void)mb_info;

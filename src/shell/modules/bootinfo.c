@@ -2,8 +2,10 @@
 #include "drivers/x86/screen/vga.h"
 #include "printf.h"
 
-static shell_module_handler_fn handler(char *args, multiboot_info *mb_info)
+static shell_module_handler_return_t handler(char *args, multiboot_info *mb_info)
 {
+    (void)args;
+
     printf("\nFlags: 0x%x\n", mb_info->flags);
     printf("Lower memory: 0x%x\n", mb_info->mem_lower);
     printf("Upper memory: 0x%x\n", mb_info->mem_upper);

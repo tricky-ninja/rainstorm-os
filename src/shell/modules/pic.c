@@ -3,15 +3,18 @@
 #include "printf.h"
 #include "memory_utils.h"
 #include "drivers/x86/keyboard/keyboard.h"
+#include "drivers/x86/pic/pic.h"
 
-static shell_module_handler_fn handler(char *args, multiboot_info *mb_info)
+static shell_module_handler_return_t handler(char *args, multiboot_info *mb_info)
 {
+    (void)mb_info;
+
     if (args == NULL)
     {
         printf("Usage: pic disable\n");
         return 0;
     }
-    strsplit(args, " ");
+    strsplit(args, ' ');
     if (strcmp(args, "disable")) 
     {
         printf("Unrecognised argument %s\n", args);

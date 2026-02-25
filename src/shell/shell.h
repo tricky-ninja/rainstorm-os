@@ -2,7 +2,8 @@
 
 #include "multiboot.h"
 
-typedef int (*shell_module_handler_fn)(char *, multiboot_info *);
+typedef int shell_module_handler_return_t;
+typedef shell_module_handler_return_t (*shell_module_handler_fn)(char *, multiboot_info *);
 
 #define SHELL_MODULE_REGISTER(...) \
     static const shell_module __shell_module_##__LINE__ \

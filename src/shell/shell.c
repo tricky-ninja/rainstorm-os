@@ -2,6 +2,7 @@
 #include "klog.h"
 #include "memory_utils.h"
 #include "drivers/x86/keyboard/keyboard.h"
+#include "memory_utils.h"
 
 static shell_module *modules;
 static size_t loaded_modules_count;
@@ -11,8 +12,8 @@ extern shell_module _shell_modules_end;
 
 void shell_init()
 {
-    uint8_t *modules_start = &_shell_modules_start;
-    uint8_t *modules_end = &_shell_modules_end;
+    uint8_t *modules_start = (uint8_t *)&_shell_modules_start;
+    uint8_t *modules_end = (uint8_t *)&_shell_modules_end;
     loaded_modules_count = modules_end - modules_start;
     if (loaded_modules_count % sizeof(shell_module)) 
     {
@@ -25,16 +26,16 @@ void shell_init()
 }
 
 
-int shell_run(const char *module_name, const char *args, multiboot_info *mb_info)
+int shell_run(const char *module_name, char *args, multiboot_info *mb_info)
 {
     if (module_name == NULL) return -1;
-    for (int i = 0; i < loaded_modules_count; i++)
+    for (size_t i = 0; i < loaded_modules_count; i++)
     {
         if (!strcmp(modules[i].name, module_name))
             return modules[i].handler(args, mb_info);
     }
     printf("%s is not valid shell command or module\n", module_name);
-    return -1;
+    return 0;
 }
 
 void shell_launch(char *cmd, multiboot_info *mb_info)
@@ -52,7 +53,7 @@ void shell_launch(char *cmd, multiboot_info *mb_info)
         if (!strcmp(cmd, "help"))
         {
             printf("-----------------------------------------------\n");
-            for (int i = 0; i < loaded_modules_count; i++)
+            for (size_t i = 0; i < loaded_modules_count; i++)
             {
                 printf("%s - %s\n", modules[i].name, modules[i].desc);
             }
@@ -62,6 +63,7 @@ void shell_launch(char *cmd, multiboot_info *mb_info)
             continue;
         }
         exit_code = shell_run(cmd, args, mb_info);
+        if (exit_code != 0) printf("ERR: %d\n", exit_code);
     }
     printf("Exiting kernel shell\n");
 }

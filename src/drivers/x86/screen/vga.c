@@ -16,6 +16,16 @@
 #include "memory_utils.h"
 #include "arch/i686/io.h"
 
+static VGA_Context g_currentContext = {
+    (uint8_t *)0xB8000,
+    25,
+    80,
+    VGA_DEFAULT_COLOR,
+    0,
+    0,
+};
+
+
 void vga_set_cursor(uint8_t csrX, uint8_t csrY)
 {
   g_currentContext.csrX = csrX;

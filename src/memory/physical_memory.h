@@ -14,12 +14,13 @@
 #pragma once
 #include "multiboot.h"
 #include <stdbool.h>
+#include "stddef.h"
 
 #define PAGE_SIZE 4096
 #define BITS_PER_BYTE 8
 
-#define PMM_ALIGN_UP(x) ((((uint32_t)(x) + PAGE_SIZE - 1) / PAGE_SIZE) * PAGE_SIZE) // (x + page_size - 1 ) / page_size * page_size
-#define PMM_ALIGN_DOWN(x) (((uint32_t)(x) / PAGE_SIZE) * PAGE_SIZE)                 // x / page_size * page_size
+#define PMM_ALIGN_UP(x) ((((phys_addr_t)(x) + PAGE_SIZE - 1) / PAGE_SIZE) * PAGE_SIZE) // (x + page_size - 1 ) / page_size * page_size
+#define PMM_ALIGN_DOWN(x) (((phys_addr_t)(x) / PAGE_SIZE) * PAGE_SIZE)                 // x / page_size * page_size
 
 #define PMM_INVALID_ADDRESS 0xFFFFFFFF
 
@@ -29,7 +30,7 @@ typedef enum pmm_memory_type
   PMM_ALLOCATED = 1
 } pmm_memory_type;
 
-typedef uint32_t phys_addr_t;
+typedef uintptr_t phys_addr_t;
 
 /**
  *  Initializes the Physical Memory Manager using the multiboot memory map.
@@ -44,8 +45,8 @@ typedef uint32_t phys_addr_t;
  *  Must be called before any other PMM function.
  *
  *  @param mb_info Pointer to multiboot information structure
- *  @param kernel_start_addr Physical start address of the kernel
- *  @param kernel_end_addr Physical end address of the kernel
+ *  @param kernel_start_addr Start address of the kernel
+ *  @param kernel_end_addr End address of the kernel
  **/
 void pmm_init(multiboot_info *mb_info, phys_addr_t kernel_start_addr, phys_addr_t kernel_end_addr);
 
@@ -110,5 +111,5 @@ bool pmm_is_page_free(phys_addr_t phys_addr);
  *
  *  @return Total free memory size in bytes
  **/
-uint32_t pmm_get_free_size();
-uint32_t pmm_get_total_size();
+size_t pmm_get_free_size();
+size_t pmm_get_total_size();
