@@ -1,9 +1,9 @@
 Need to do:
-- Proper lock handling (cli/sti for now, handle nested locks) 
-- 64 bit port
 - Enable paging (Identity mapping for start, higher half kernel later)
 - Virtual memory manager
 - Kernel Heap
+- Proper lock handling (cli/sti for now, handle nested locks) 
+- 64 bit port
 - Context switching and multitasking (cooperative)
 - Hard disk reading (ATA PIO)
 - FAT32 FileSystem

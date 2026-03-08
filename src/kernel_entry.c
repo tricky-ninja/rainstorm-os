@@ -17,12 +17,13 @@
 #include "memory/physical_memory.h"
 #include "klog.h"
 #include "shell/shell.h"
+#include <stddef.h>
 
 extern uint8_t _kernel_start;
 extern uint8_t _kernel_end;
 
-static uint8_t *kernel_start_addr;
-static uint8_t *kernel_end_addr;
+static uint8_t *kernel_start_addr_virt;
+static uint8_t *kernel_end_addr_virt;
 
 void kstart(uint32_t magic, multiboot_info *mb_info);
 
@@ -110,12 +111,21 @@ static void arch_init()
 
 static void memory_init(multiboot_info *mb_info)
 {
-    kernel_start_addr = &_kernel_start;
-    kernel_end_addr = &_kernel_end;
+    kernel_start_addr_virt = &_kernel_start;
+    kernel_end_addr_virt = &_kernel_end;
 
-    klog_debug("kernel_start=0x%x", (phys_addr_t)kernel_start_addr);
-    klog_debug("kernel_end=0x%x", (phys_addr_t)kernel_end_addr);
-    pmm_init(mb_info, (phys_addr_t)kernel_start_addr, (phys_addr_t)kernel_end_addr);
+    klog_debug("kernel_start=0x%x", kernel_start_addr_virt);
+    klog_debug("kernel_end=0x%x", kernel_end_addr_virt);
+
+    pmm_range_t *ranges = (pmm_range_t *)(uintptr_t)PMM_ALIGN_UP((uintptr_t)kernel_end_addr_virt);
+    size_t ranges_count = multiboot_mmap_parse((uint8_t*)mb_info->mmap_addr, mb_info->mmap_length, ranges);
+    pmm_range_t *ranges_end = &ranges[ranges_count];
+
+    uint8_t *bitmap_addr_virt = (uint8_t *)(uintptr_t)PMM_ALIGN_UP((uintptr_t)ranges_end);
+    phys_addr_t bitmap_addr_physical = (phys_addr_t)(uintptr_t)bitmap_addr_virt;    // No paging for now
+
+    pmm_init(ranges, ranges_count, bitmap_addr_virt, bitmap_addr_physical, (phys_addr_t)(uintptr_t)kernel_start_addr_virt, (phys_addr_t)(uintptr_t)kernel_end_addr_virt);
+
     klog_info("Total memory: %uKB", pmm_get_total_size() / 1024);
     klog_info("Total usable memory: %uKB", pmm_get_free_size() / 1024);
 
@@ -129,4 +139,46 @@ static void device_init()
 
     keyboard_init();
     io_enableInterrupts();
+}
+
+size_t multiboot_mmap_parse(uint8_t *ptr, size_t length, pmm_range_t *ranges)
+{
+    uint8_t *end = ptr + length;
+    size_t i = 0;
+    size_t highest_usable_index = 0;
+    while (ptr < end)
+    {
+        multiboot_mmap_entry *entry = (multiboot_mmap_entry*)ptr;
+        phys_addr_t start_addr = entry->addr;
+        phys_addr_t end_addr = entry->addr + entry->len;
+        pmm_memory_type type = entry->type == MULTIBOOT_MEMORY_AVAILABLE ? PMM_FREE : PMM_ALLOCATED;
+
+        if (start_addr >= PMM_LIMIT_32)
+        {
+            ptr += entry->size + sizeof(entry->size);
+            continue;
+        }
+
+        if (end_addr >= PMM_LIMIT_32)
+        {
+            end_addr = PMM_LIMIT_32;
+        }
+
+        if (end_addr <= start_addr)
+        {
+            ptr += entry->size + sizeof(entry->size);
+            continue;
+        }
+
+        ranges[i].start = start_addr;
+        ranges[i].end = end_addr;
+        ranges[i].type = type;
+
+        ptr += entry->size + sizeof(entry->size);
+        i++;
+        if (type == PMM_FREE) highest_usable_index = i;
+    }
+
+    return highest_usable_index;
+
 }

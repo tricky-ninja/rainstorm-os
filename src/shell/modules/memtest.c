@@ -47,7 +47,7 @@ static shell_module_handler_return_t handler(char *args, multiboot_info *mb_info
        }
        else
        {
-              printf("Allocated page: 0x%x\n", page);
+              printf("Allocated page: 0x%llx\n", page);
 
               printf("Is free after alloc? %u (expected 0)\n",
                      pmm_is_page_free(page));
@@ -97,7 +97,7 @@ static shell_module_handler_return_t handler(char *args, multiboot_info *mb_info
        printf("\n[TEST] Exhaustion test\n");
 
        uint32_t alloc_count = 0;
-       phys_addr_t pages[1024];
+       static phys_addr_t pages[1024];
 
        while (alloc_count < 1024)
        {

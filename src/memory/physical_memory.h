@@ -7,14 +7,13 @@
  *      - Memory statistics
  *      - Page state queries
  *
- *  Initialized using Multiboot memory map.
  *  Author: Sreyas A (TrickyNinja)
  */
 
 #pragma once
-#include "multiboot.h"
 #include <stdbool.h>
 #include "stddef.h"
+#include <stdint.h>
 
 #define PAGE_SIZE 4096
 #define BITS_PER_BYTE 8
@@ -22,7 +21,10 @@
 #define PMM_ALIGN_UP(x) ((((phys_addr_t)(x) + PAGE_SIZE - 1) / PAGE_SIZE) * PAGE_SIZE) // (x + page_size - 1 ) / page_size * page_size
 #define PMM_ALIGN_DOWN(x) (((phys_addr_t)(x) / PAGE_SIZE) * PAGE_SIZE)                 // x / page_size * page_size
 
-#define PMM_INVALID_ADDRESS 0xFFFFFFFF
+#define PMM_LIMIT_32 (0x100000000ULL)
+#define PMM_INVALID_ADDRESS ((phys_addr_t)~0ULL)
+
+typedef long long unsigned int phys_addr_t;
 
 typedef enum pmm_memory_type
 {
@@ -30,7 +32,14 @@ typedef enum pmm_memory_type
   PMM_ALLOCATED = 1
 } pmm_memory_type;
 
-typedef uintptr_t phys_addr_t;
+typedef struct pmm_range_t
+{
+  phys_addr_t start;  // inclusive
+  phys_addr_t end;    // exculsive
+  pmm_memory_type type;
+} pmm_range_t;
+
+
 
 /**
  *  Initializes the Physical Memory Manager using the multiboot memory map.
@@ -44,11 +53,14 @@ typedef uintptr_t phys_addr_t;
  *
  *  Must be called before any other PMM function.
  *
- *  @param mb_info Pointer to multiboot information structure
+ *  @param mem_ranges Pointer to memory range information
+ *  @param mem_ranges_count Number of entries in mem_ranges
+ *  @param bitmap_start_addr Pointer to the start of bitmap
+ *  @param bitmap_start_physical Address of bitmap in physical memory
  *  @param kernel_start_addr Start address of the kernel
  *  @param kernel_end_addr End address of the kernel
  **/
-void pmm_init(multiboot_info *mb_info, phys_addr_t kernel_start_addr, phys_addr_t kernel_end_addr);
+void pmm_init(pmm_range_t *mem_ranges, size_t mem_ranges_count, uint8_t *bitmap_start_addr, phys_addr_t bitmap_start_physical, phys_addr_t kernel_start_addr, phys_addr_t kernel_end_addr);
 
 /**
  *  Allocates a single 4KB physical page.

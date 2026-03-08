@@ -50,5 +50,5 @@ halt:
 section .bss
 
 stack_end:
-resb 4096 * 2
+resb 4096 * 8
 stack_start:

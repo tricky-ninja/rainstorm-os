@@ -70,8 +70,9 @@ void isr_handler(Registers* regs) {
 
     else
     {
-        klog_critical("Unhandled Excception: %s", g_Exceptions[int_num]);
-        io_disableInterrupts();
+        klog_critical("Unhandled Excception: %s\nRges: ds=0x%X edi=0x%x esi=0x%x\nebp=0x%x kern_esp=0x%x ebx=0x%x edx=0x%x\necx=0x%x eax=0x%x eip=0x%x\ncs=0x%x eflags=0x%x esp=0x%x ss=0x%x\n\nOpcode=0x%x\n",
+             g_Exceptions[int_num], regs->ds, regs->edi, regs->esi, regs->ebp, regs->kern_esp, regs->ebx, regs->edx, regs->ecx, regs->eax, regs->eip, regs->cs, regs->eflags, regs->esp, regs->ss,
+            *(uint32_t*)regs->eip);
         asm("hlt"); 
     }
 

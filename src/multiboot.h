@@ -1,6 +1,8 @@
 #pragma once
 
 #include <stdint.h>
+#include <stddef.h>
+#include "memory/physical_memory.h"
 
 #define MULTIBOOT_HEADER_MAGIC 0x1BADB002
 #define MULTIBOOT_BOOTLOADER_MAGIC 0x2BADB002
@@ -56,3 +58,5 @@ typedef struct multiboot_mmap_entry
   uint32_t type;
 }__attribute__((packed)) multiboot_mmap_entry;
 
+
+size_t multiboot_mmap_parse(uint8_t *entry, size_t length, pmm_range_t *ranges);

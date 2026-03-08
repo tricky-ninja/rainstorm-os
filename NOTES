@@ -17,6 +17,44 @@ GDT:
   and a task state segment
 
 
+Physical memory map
+Low Address
+0x00000000
++---------------------------+
+| BIOS / Bootloader         |
+| from 0 to 1MB             |
+| RESERVED                  |
++---------------------------+
+| Kernel Start (1MB)        |
++---------------------------+
+| Kernel Code / Data        |
++---------------------------+
+| BSS                       |
++---------------------------+
+| stack_end                 |
+| Kernel Stack (32KB)       |
+| stack_start               |
++---------------------------+
+| Kernel End                |
+| RESERVED                  |
++---------------------------+
+| Temp PMM ranges           |
+| (can be overwritten)      |
++---------------------------+
+| PMM Bitmap                |
+|  bitmap_start             |
+|  BITMAP DATA              |
+|  bitmap_end               |
+| RESERVED                  |
++---------------------------+
+| Free Physical Memory      |
+| (pages for allocation)    |
++---------------------------+
+High Address
+
+Everything from address 0 to Kernel end is RESERVED
+PMM ranges is not reserved and is treated as free region (its fine to overwrite)
+
 
 
 

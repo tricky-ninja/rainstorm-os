@@ -32,6 +32,7 @@
 #define VGA_DEFAULT_COLOR 0x07
 #define VGA_LIGHT_COLOR   0xF0  // Bit 7 may enable blinking on real hardware
 #define VGA_HACKER_COLOR  0x02
+#define VGA_PANIC_COLOR   0x4F
 
 // Blank character with current color
 #define VGA_BLANK (0x20 | (g_currentContext.color << 8))
