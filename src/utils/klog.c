@@ -59,6 +59,7 @@ void klogf(klog_Level level, char *string, ...)
         serial_printf("kernel halted");
         printf("kernel halted");
         asm volatile("hlt");
+        __builtin_unreachable();
     }
 
     va_list args;

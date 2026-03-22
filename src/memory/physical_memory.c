@@ -31,11 +31,11 @@ static phys_addr_t kernel_end_physical;
 static phys_addr_t bitmap_start_addr_physical;
 static phys_addr_t bitmap_end_addr_physical;
 
-bool initialized = false;
+static bool initialized = false;
 
 static phys_addr_t page_index_to_addr(size_t page_index)
 {
-  return (page_index * PAGE_SIZE);
+  return (phys_addr_t)(page_index * PAGE_SIZE);
 }
 
 static size_t page_index_from_byte_and_bit(size_t byte_index, uint8_t bit_index)
@@ -45,7 +45,7 @@ static size_t page_index_from_byte_and_bit(size_t byte_index, uint8_t bit_index)
 
 static size_t addr_to_page_index(phys_addr_t addr)
 {
-  addr = PMM_ALIGN_DOWN(addr);
+  addr = PAGE_ALIGN_DOWN(addr);
   return (addr / PAGE_SIZE);
 }
 
@@ -77,7 +77,7 @@ static int mark_page(size_t page_index, pmm_memory_type type)
   return -1;
 }
 
-static int clip_range(pmm_range_t *range, phys_addr_t limit)
+static int clip_range(pmm_range_t *range, uint64_t limit)
 {
   if (range->start >= limit)
     return -1;
@@ -89,12 +89,12 @@ static int clip_range(pmm_range_t *range, phys_addr_t limit)
   return 0;
 }
 
-void pmm_init(pmm_range_t *mem_ranges, size_t mem_ranges_count, uint8_t *bitmap_start_addr, phys_addr_t bitmap_start_physical, phys_addr_t kernel_start_addr_physical, phys_addr_t kernel_end_addr_physical)
+phys_addr_t pmm_init(pmm_range_t *mem_ranges, size_t mem_ranges_count, uint8_t *bitmap_start_addr, phys_addr_t bitmap_start_physical, phys_addr_t kernel_start_addr_physical, phys_addr_t kernel_end_addr_physical)
 {
   if (!pmm_is_aligned(bitmap_start_physical))
   {
     klog_critical("pmm_init bitmap_start_physical is not page alligned\n");
-    return;
+    return PMM_INVALID_ADDRESS;
   }
 
   bitmap_start = bitmap_start_addr;
@@ -109,9 +109,10 @@ void pmm_init(pmm_range_t *mem_ranges, size_t mem_ranges_count, uint8_t *bitmap_
       pmm_range_t range = mem_ranges[i];
       if (clip_range(&range, PMM_LIMIT_32) != 0)
         continue;
-      highest_memory = highest_memory > range.end ? highest_memory : range.end;
+      if (range.end > highest_memory)
+        highest_memory = (phys_addr_t)range.end;
     }
-    bitmap_pagecount = PMM_ALIGN_UP(highest_memory) / PAGE_SIZE;
+    bitmap_pagecount = PAGE_ALIGN_UP(highest_memory) / PAGE_SIZE;
     bitmap_end = bitmap_start + bitmap_size_in_bytes(bitmap_pagecount);
     bitmap_end_addr_physical = bitmap_start_addr_physical + bitmap_size_in_bytes(bitmap_pagecount);
     memset(bitmap_start, 0xFF, bitmap_size_in_bytes(bitmap_pagecount));
@@ -128,8 +129,8 @@ void pmm_init(pmm_range_t *mem_ranges, size_t mem_ranges_count, uint8_t *bitmap_
     if (range.type != PMM_FREE)
       continue;
 
-    phys_addr_t base_addr = PMM_ALIGN_UP(range.start);
-    phys_addr_t end_addr = PMM_ALIGN_DOWN(range.end);
+    phys_addr_t base_addr = PAGE_ALIGN_UP(range.start);
+    phys_addr_t end_addr = PAGE_ALIGN_DOWN(range.end);
 
     if (end_addr <= base_addr)
       continue;
@@ -145,7 +146,7 @@ void pmm_init(pmm_range_t *mem_ranges, size_t mem_ranges_count, uint8_t *bitmap_
   if (!found)
   {
     klog_critical("pmm_init: No free pages found, ram is unusable");
-    return;
+    return PMM_INVALID_ADDRESS;
   }
 
   // Mark allocated ranges as allocated
@@ -158,16 +159,13 @@ void pmm_init(pmm_range_t *mem_ranges, size_t mem_ranges_count, uint8_t *bitmap_
     if (range.type == PMM_FREE)
       continue;
 
-    phys_addr_t base_addr = PMM_ALIGN_DOWN(range.start);
-    phys_addr_t end_addr = PMM_ALIGN_UP(range.end);
+    phys_addr_t base_addr = PAGE_ALIGN_DOWN(range.start);
+    phys_addr_t end_addr = PAGE_ALIGN_UP(range.end);
 
     if (end_addr <= base_addr)
     {
-      klog_critical("pmm_init: end_addr is less than base_addr, this was not supposed to happen base=0x%llx end=0x%llx (addr=0x%llx len=0x%llx type=%u)",
+      klog_critical("pmm_init: end_addr is less than base_addr, this was not supposed to happen base=0x%x end=0x%x (addr=0x%llx len=0x%llx type=%u)",
                     base_addr, end_addr, range.start, range.end, (unsigned)range.type);
-      asm volatile("cli");
-      asm volatile("hlt");
-      __builtin_unreachable();
     }
 
     size_t page_count = (end_addr - base_addr) / PAGE_SIZE;
@@ -181,8 +179,8 @@ void pmm_init(pmm_range_t *mem_ranges, size_t mem_ranges_count, uint8_t *bitmap_
 
   // Mark kernel and bitmap memory as reserved
   {
-    phys_addr_t start = PMM_ALIGN_DOWN(kernel_start_addr_physical);
-    phys_addr_t end = PMM_ALIGN_UP(kernel_end_addr_physical);
+    phys_addr_t start = PAGE_ALIGN_DOWN(kernel_start_addr_physical);
+    phys_addr_t end = PAGE_ALIGN_UP(kernel_end_addr_physical);
     kernel_start_physical = start;
     kernel_end_physical = end;
 
@@ -195,8 +193,8 @@ void pmm_init(pmm_range_t *mem_ranges, size_t mem_ranges_count, uint8_t *bitmap_
       start_index += 1;
     }
 
-    start = PMM_ALIGN_DOWN(bitmap_start_addr_physical);
-    end = PMM_ALIGN_UP(bitmap_end_addr_physical);
+    start = PAGE_ALIGN_DOWN(bitmap_start_addr_physical);
+    end = PAGE_ALIGN_UP(bitmap_end_addr_physical);
     start_index = addr_to_page_index(start);
     end_index = addr_to_page_index(end);
 
@@ -209,12 +207,13 @@ void pmm_init(pmm_range_t *mem_ranges, size_t mem_ranges_count, uint8_t *bitmap_
 
   // Mark the first 1MB memory as reserved
   {
-    size_t page_count = PMM_ALIGN_UP(1024 * 1024) / PAGE_SIZE;
+    size_t page_count = PAGE_ALIGN_UP(1024 * 1024) / PAGE_SIZE;
     for (size_t i = 0; i < page_count; i++)
       mark_page(i, PMM_ALLOCATED);
   }
   initialized = true;
   klog_info("pmm_init: Successfully intiliased physical memory");
+  return bitmap_end_addr_physical;
 }
 
 phys_addr_t pmm_alloc_page()
@@ -256,7 +255,7 @@ void pmm_free_page(phys_addr_t phys_addr)
 
   if (!pmm_is_aligned(phys_addr))
   {
-    klog_error("pmm_free_page: 0x%llx is not page alligned", phys_addr);
+    klog_error("pmm_free_page: 0x%x is not page alligned", phys_addr);
     return;
   }
 
@@ -306,7 +305,7 @@ bool pmm_is_page_free(phys_addr_t phys_addr)
   }
   if (!pmm_is_aligned(phys_addr))
   {
-    klog_error("pmm_is_page_free: 0x%llx is not page alligned", phys_addr);
+    klog_error("pmm_is_page_free: 0x%x is not page alligned", phys_addr);
     return false;
   }
 
@@ -367,7 +366,7 @@ int pmm_mark_allocated(phys_addr_t phys_addr)
   }
   if (!pmm_is_aligned(phys_addr))
   {
-    klog_error("pmm_mark_allocated: Address 0x%llx is not page aligned\n", phys_addr);
+    klog_error("pmm_mark_allocated: Address 0x%x is not page aligned\n", phys_addr);
     return -1;
   }
   size_t page_index = addr_to_page_index(phys_addr);

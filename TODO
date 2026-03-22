@@ -1,5 +1,4 @@
 Need to do:
-- Enable paging (Identity mapping for start, higher half kernel later)
 - Virtual memory manager
 - Kernel Heap
 - Proper lock handling (cli/sti for now, handle nested locks) 
@@ -26,3 +25,4 @@ DONE:
 - Basic kernel shell
 - Request Memory map from grub
 - Physical memory manager
+- Enable paging (higher half kernel)

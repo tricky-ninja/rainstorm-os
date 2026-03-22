@@ -47,7 +47,7 @@ static shell_module_handler_return_t handler(char *args, multiboot_info *mb_info
        }
        else
        {
-              printf("Allocated page: 0x%llx\n", page);
+              printf("Allocated page: 0x%x\n", page);
 
               printf("Is free after alloc? %u (expected 0)\n",
                      pmm_is_page_free(page));

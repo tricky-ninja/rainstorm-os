@@ -21,7 +21,7 @@ static shell_module_handler_return_t handler(char *args, multiboot_info *mb_info
         printf("Usage: pic disable\n");
         return 0;
     }
-    printf("WARNING! Running this command will make the os disable hardware interupts and it cant be enabled till reboot\nType 'yes' to confirm: ");
+    printf("WARNING! Running this command will make the os disable pic interupts and it cant be enabled till reboot\nType 'yes' to confirm: ");
     keyboard_get_line(args, 256);
     if (strcmp(args, "yes"))
         return 0; // if not yes continue the loop

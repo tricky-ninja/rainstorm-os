@@ -11,7 +11,7 @@ static shell_module_handler_return_t handler(char *args, multiboot_info *mb_info
 
     if (args == NULL)
     {
-        printf("Usage: pmm <allocate/stats>\n");
+        printf("Usage: pmm <allocate/stats/test>\n");
         return 0;
     }
     strsplit(args, ' ');
@@ -37,7 +37,12 @@ static shell_module_handler_return_t handler(char *args, multiboot_info *mb_info
         return 0;
     }
 
-    printf("Usage: pmm <allocate/stats>\n");
+    if (!strcmp(args, "test"))
+    {
+        return shell_run("memtest", args, mb_info);
+    }
+
+    printf("Usage: pmm <allocate/stats/test>\n");
 
     return 0;
 }

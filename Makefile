@@ -27,7 +27,13 @@ run: $(BUILD_DIR)/$(OUTPUT) create
 	qemu-system-i386 $< -serial file:log.txt -m 512M
 
 debug: $(BUILD_DIR)/$(OUTPUT) create
-	qemu-system-i386 $< -S -s -serial stdio -m 512M
+		qemu-system-i386 $< -S -s \
+		-serial stdio \
+		-m 512M \
+		-d int,cpu_reset,guest_errors \
+		-D qemu.log \
+		-no-reboot \
+		-no-shutdown
 
 create:
 	mkdir -p $(BUILD_DIR)

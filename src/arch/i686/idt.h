@@ -48,4 +48,4 @@ extern idt_descriptor idtPtr;
 void idt_set_gate(uint8_t num, uint32_t offset, uint16_t segment, uint8_t flags);
 void idt_install();
 
-extern void _idt_load();
+void _idt_load();

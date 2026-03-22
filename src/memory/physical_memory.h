@@ -18,13 +18,14 @@
 #define PAGE_SIZE 4096
 #define BITS_PER_BYTE 8
 
-#define PMM_ALIGN_UP(x) ((((phys_addr_t)(x) + PAGE_SIZE - 1) / PAGE_SIZE) * PAGE_SIZE) // (x + page_size - 1 ) / page_size * page_size
-#define PMM_ALIGN_DOWN(x) (((phys_addr_t)(x) / PAGE_SIZE) * PAGE_SIZE)                 // x / page_size * page_size
+#define PAGE_ALIGN_UP(x)   (((x) + PAGE_SIZE - 1) & ~(PAGE_SIZE - 1))
+#define PAGE_ALIGN_DOWN(x) ((x) & ~(PAGE_SIZE - 1))
+
+typedef uint32_t phys_addr_t;
 
 #define PMM_LIMIT_32 (0x100000000ULL)
-#define PMM_INVALID_ADDRESS ((phys_addr_t)~0ULL)
+#define PMM_INVALID_ADDRESS ((phys_addr_t)0xFFFFFFFF)
 
-typedef long long unsigned int phys_addr_t;
 
 typedef enum pmm_memory_type
 {
@@ -34,8 +35,8 @@ typedef enum pmm_memory_type
 
 typedef struct pmm_range_t
 {
-  phys_addr_t start;  // inclusive
-  phys_addr_t end;    // exculsive
+  uint64_t start;  // inclusive
+  uint64_t end;    // exculsive
   pmm_memory_type type;
 } pmm_range_t;
 
@@ -60,7 +61,7 @@ typedef struct pmm_range_t
  *  @param kernel_start_addr Start address of the kernel
  *  @param kernel_end_addr End address of the kernel
  **/
-void pmm_init(pmm_range_t *mem_ranges, size_t mem_ranges_count, uint8_t *bitmap_start_addr, phys_addr_t bitmap_start_physical, phys_addr_t kernel_start_addr, phys_addr_t kernel_end_addr);
+phys_addr_t pmm_init(pmm_range_t *mem_ranges, size_t mem_ranges_count, uint8_t *bitmap_start_addr, phys_addr_t bitmap_start_physical, phys_addr_t kernel_start_addr, phys_addr_t kernel_end_addr);
 
 /**
  *  Allocates a single 4KB physical page.

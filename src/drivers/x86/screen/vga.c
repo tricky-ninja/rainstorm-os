@@ -17,7 +17,7 @@
 #include "arch/i686/io.h"
 
 static VGA_Context g_currentContext = {
-    (uint8_t *)0xB8000,
+    (uint8_t *)0xC00B8000,
     25,
     80,
     VGA_DEFAULT_COLOR,

@@ -19,3 +19,4 @@ typedef struct shell_module
 
 void shell_init();
 void shell_launch(char *cmd, multiboot_info *mb_info);
+int shell_run(const char *module_name, char *args, multiboot_info *mb_info);
