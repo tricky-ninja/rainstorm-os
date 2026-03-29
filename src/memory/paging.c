@@ -1,195 +1,360 @@
 #include "paging.h"
-#include "klog.h"
-#include "memory_utils.h"
-#include "arch/i686/isr.h"
+#include "utils/klog.h"
 
-#define KERNEL_VMA 0xC0000000
-#define PAGE_DIR_VIRT_ADDR ((page_dir_entry *)0xFFFFF000)
-#define PAGE_TABLE_VIRT_ADDR(i) ((uint32_t *)(0xFFC00000 + (i) * PAGE_SIZE))
+static phys_addr_t kernel_pml4_entries[256];
 
-static bool initialized = false;
-
-// Internal assembly helpers (defined in paging.asm)
-void _paging_switch_dir(phys_addr_t dir_addr);
+// Internal assembly helpers
+void _paging_switch_dir(phys_addr_t pml4_phys);
 void _paging_flush_tlb();
-void _paging_enable();
-void _paging_disable_pse();
-bool _paging_is_enabled();
+void _paging_invalidate_page(uint64_t virt_addr);
+phys_addr_t _paging_get_current_dir();
+void _paging_enable_nxe();
 
-void page_fault_handler(Registers *regs)
+phys_addr_t paging_init(phys_addr_t kernel_physical_base, uint64_t kernel_virtual_base, kernel_segment_info_t segment_info)
 {
-    (void)regs;
-    klog_critical("Page fault");
-}
+    phys_addr_t pml4_phys = pmm_alloc_frame();
+    uint64_t *pml4_entries = (uint64_t *)HHDM_PHYS_TO_VIRT(pml4_phys);
+    memset((uint8_t *)HHDM_PHYS_TO_VIRT(pml4_phys), 0, PAGE_SIZE);
 
-phys_addr_t paging_init(phys_addr_t start, phys_addr_t end)
-{
-    if (!_paging_is_enabled())
+    // fill all kernel pml4 entries
+    for (size_t i = 256; i < 512; i++)
     {
-        klog_critical("paging_init: Called without setting up intial 4MB paging");  // for now it panics and doesnt return
-        return PMM_INVALID_ADDRESS;
+        phys_addr_t pdpt_phys = pmm_alloc_frame();
+        uint64_t *pdpt_entries = (uint64_t *)HHDM_PHYS_TO_VIRT(pdpt_phys);
+        memset(pdpt_entries, 0, PAGE_SIZE);
+        pml4_entries[i] = pdpt_phys | PAGE_PRESENT | PAGE_WRITABLE;
     }
 
-    if (!pmm_is_aligned(start) || !pmm_is_aligned(end))
-    {
-        klog_error("paging_init: Address are not page aligned, start=0x%x end=0x%x", start, end);
-        return PMM_INVALID_ADDRESS;
-    }
+    // map hhdm
+    size_t memsize = pmm_get_total_size();
+    paging_map_range(pml4_phys, g_hhdm_offset, 0, memsize, PAGE_WRITABLE | PAGE_GLOBAL | PAGE_NO_EXECUTE | PAGE_PRESENT);
 
-    if ((uint64_t)((uint64_t)end + KERNEL_VMA) >= PMM_LIMIT_32)
-    {
-        klog_warn("paging_init: end=0x%x is higher than 32 bit integer limit when accounting for higher half\n", end);
-       end = 0x3FFFFFFF;    // end + KERNEL_VMA = 32 bit integer limit 
-    }
+    // map kernel image
+    size_t limine_size = (segment_info.limine_end - segment_info.limine_start);
+    uint64_t limine_phys_addr = ((uint64_t)segment_info.limine_start - kernel_virtual_base) + kernel_physical_base;
+    paging_map_range(pml4_phys, (uint64_t)segment_info.limine_start, limine_phys_addr, limine_size, PAGE_GLOBAL | PAGE_NO_EXECUTE | PAGE_PRESENT);
 
-    phys_addr_t kernel_page_dir;
-    kernel_page_dir = pmm_alloc_page();
-    page_dir_entry *kernel_page_dir_va = (page_dir_entry*)(kernel_page_dir + KERNEL_VMA);
-    memset(kernel_page_dir_va, 0, sizeof(page_dir_entry) * 1024);
+    size_t text_size = (segment_info.text_end - segment_info.text_start);
+    uint64_t text_phys_addr = ((uint64_t)segment_info.text_start - kernel_virtual_base) + kernel_physical_base;
+    paging_map_range(pml4_phys, (uint64_t)segment_info.text_start, text_phys_addr, text_size, PAGE_GLOBAL | PAGE_PRESENT);
 
-    for (phys_addr_t addr = start; addr < end; addr += PAGE_SIZE)
-    {
-        uintptr_t virt_addr = addr + KERNEL_VMA;
+    size_t rodata_size = (segment_info.rodata_end - segment_info.rodata_start);
+    uint64_t rodata_phys_addr = ((uint64_t)segment_info.rodata_start - kernel_virtual_base) + kernel_physical_base;
+    paging_map_range(pml4_phys, (uint64_t)segment_info.rodata_start, rodata_phys_addr, rodata_size, PAGE_GLOBAL | PAGE_NO_EXECUTE | PAGE_PRESENT);
 
-        uint32_t dir_index = DIR_INDEX(virt_addr);
-        uint32_t table_index = TABLE_INDEX(virt_addr);
+    size_t data_size = (segment_info.data_end - segment_info.data_start);
+    uint64_t data_phys_addr = ((uint64_t)segment_info.data_start - kernel_virtual_base) + kernel_physical_base;
+    paging_map_range(pml4_phys, (uint64_t)segment_info.data_start, data_phys_addr, data_size, PAGE_GLOBAL | PAGE_NO_EXECUTE | PAGE_WRITABLE | PAGE_PRESENT);
 
-        
-        if (!(kernel_page_dir_va[dir_index] & PAGE_FLAG_PRESENT))
-        {
-            phys_addr_t new_page_table_addr = pmm_alloc_page();
-            memset((void*)(new_page_table_addr + KERNEL_VMA), 0, PAGE_SIZE);
-            kernel_page_dir_va[dir_index] = new_page_table_addr | PAGE_FLAG_PRESENT | PAGE_FLAG_WRITE;
-        }
-
-        phys_addr_t table_phys_addr = kernel_page_dir_va[dir_index] & ~(0xFFFU);
-
-        uint32_t *table_virt_addr = (uint32_t*)(table_phys_addr + KERNEL_VMA);
-        table_virt_addr[table_index] = addr | PAGE_FLAG_PRESENT | PAGE_FLAG_WRITE;
-    }
-
-    kernel_page_dir_va[1023] = kernel_page_dir | PAGE_FLAG_PRESENT | PAGE_FLAG_WRITE;
-
-    paging_switch_dir(kernel_page_dir);
-    _paging_disable_pse();
-    initialized = true;
-    isr_register_handler(14, page_fault_handler);
-    return kernel_page_dir;
-}
-
-void paging_switch_dir(phys_addr_t dir)
-{
-    _paging_switch_dir(dir);
-    return;
-}
-
-phys_addr_t paging_get_current_dir()
-{
-    if (!initialized)
-    {
-        klog_error("paging_map_page: Called before initialising paging");
-        return PMM_INVALID_ADDRESS;
-    }
-    return PAGE_DIR_VIRT_ADDR[1023] & ~0xFFFU;
-}
-
-/*
-TODO: only propagate USER flag to PDE, nothing else
-uint32_t pde_flags = PAGE_FLAG_PRESENT | PAGE_FLAG_WRITE;
-if (flags & PAGE_FLAG_USER) pde_flags |= PAGE_FLAG_USER;
-dir_entries[dir_index] = new_page_table_addr | pde_flags;
-*/
-
-void paging_map_page(uintptr_t virt_addr, phys_addr_t phys_addr, uint32_t flags)
-{
-    if (!initialized)
-    {
-        klog_error("paging_map_page: Called before initialising paging");
-        return;
-    }
-    if (!pmm_is_aligned(virt_addr) || !pmm_is_aligned(phys_addr))
-    {
-        klog_error("paging_map_page: Address are not page aligned, virt_addr=0x%x phys_addr=0x%x", virt_addr, phys_addr);
-        return;
-    }
-    page_dir_entry *dir_entries = PAGE_DIR_VIRT_ADDR;
+    for (size_t i = 0; i < 256; i++)
+        kernel_pml4_entries[i] = pml4_entries[i + 256];
     
-    uint32_t dir_index = DIR_INDEX(virt_addr);
-    uint32_t table_index = TABLE_INDEX(virt_addr);
-
-    if (!(dir_entries[dir_index] & PAGE_FLAG_PRESENT))
-    {
-        phys_addr_t new_page_table_addr = pmm_alloc_page();
-        dir_entries[dir_index] = new_page_table_addr | flags | PAGE_FLAG_PRESENT | PAGE_FLAG_WRITE;
-        uint32_t *page_table = PAGE_TABLE_VIRT_ADDR(dir_index);
-        memset((void*)page_table, 0, PAGE_SIZE);
-    }
-
-    uint32_t *page_table = PAGE_TABLE_VIRT_ADDR(dir_index);
-    page_table[table_index] = phys_addr | flags | PAGE_FLAG_PRESENT;
-    _paging_flush_tlb();
+    _paging_enable_nxe();
+    _paging_switch_dir(pml4_phys);
+    klog_debug("paging_init: paging initialised without crashing, pml4_phys=0x%p", pml4_phys);
+    return pml4_phys;
 }
 
-bool paging_is_mapped(uintptr_t virt_addr)
+void paging_switch_pml4(phys_addr_t pml4_phys)
 {
-    if (!initialized)
+    if (!IS_PAGE_ALIGNED(pml4_phys))
     {
-        klog_error("paging_is_mapped: Called before initializing paging");
+        klog_error("paging_switch_pml4: pml4 address is not page alligned 0x%p", pml4_phys);
+        return;
+    }
+
+    _paging_switch_dir(pml4_phys);
+}
+
+phys_addr_t paging_create_pml4()
+{
+    phys_addr_t pml4_phys = pmm_alloc_frame();
+    uint64_t *pml4_entries = (uint64_t *)HHDM_PHYS_TO_VIRT(pml4_phys);
+    for (size_t i = 0; i < 256; i++)
+        pml4_entries[i] = 0;
+    for (size_t i = 0; i < 256; i++)
+        pml4_entries[i + 256] = kernel_pml4_entries[i];
+    return pml4_phys;
+}
+
+void paging_destroy_pml4(phys_addr_t pml4_phys)
+{
+    if (!IS_PAGE_ALIGNED(pml4_phys))
+    {
+        klog_error("paging_switch_pml4: pml4 address is not page alligned 0x%p", pml4_phys);
+        return;
+    }
+
+    uint64_t *pml4_entries = (uint64_t *)HHDM_PHYS_TO_VIRT(pml4_phys);
+    for (size_t pml4_index = 0; pml4_index < 256; pml4_index++)
+    {
+        if (!(pml4_entries[pml4_index] & PAGE_PRESENT))
+            continue;
+
+        phys_addr_t pdpt_phys = pml4_entries[pml4_index] & PHYS_ADDR_MASK;
+        uint64_t *pdpt_entries = (uint64_t *)HHDM_PHYS_TO_VIRT(pdpt_phys);
+        for (size_t pdpt_index = 0; pdpt_index < 512; pdpt_index++)
+        {
+            if (!(pdpt_entries[pdpt_index] & PAGE_PRESENT))
+                continue;
+
+            phys_addr_t pd_phys = pdpt_entries[pdpt_index] & PHYS_ADDR_MASK;
+            uint64_t *pd_entries = (uint64_t *)HHDM_PHYS_TO_VIRT(pd_phys);
+            for (size_t pd_index = 0; pd_index < 512; pd_index++)
+            {
+                if (!(pd_entries[pd_index] & PAGE_PRESENT))
+                    continue;
+
+                phys_addr_t pt_phys = pd_entries[pd_index] & PHYS_ADDR_MASK;
+                pmm_free_frame(pt_phys);
+            }
+            pmm_free_frame(pd_phys);
+        }
+        pmm_free_frame(pdpt_phys);
+    }
+    pmm_free_frame(pml4_phys);
+}
+
+void paging_map(phys_addr_t pml4_phys, uint64_t virt_addr, phys_addr_t phys_addr, uint64_t flags)
+{
+    if (!IS_PAGE_ALIGNED(pml4_phys))
+    {
+        klog_error("paging_map: pml4 address is not page alligned 0x%p", pml4_phys);
+        return;
+    }
+
+    if (!IS_PAGE_ALIGNED(virt_addr))
+    {
+        klog_error("paging_map: virtual address is not page alligned 0x%p", virt_addr);
+        return;
+    }
+
+    if (!IS_PAGE_ALIGNED(phys_addr))
+    {
+        klog_error("paging_map: physical address is not page alligned 0x%p", phys_addr);
+        return;
+    }
+
+    uint64_t pml4_index = PML4_INDEX(virt_addr);
+    uint64_t pdpt_index = PDPT_INDEX(virt_addr);
+    uint64_t pd_index = PD_INDEX(virt_addr);
+    uint64_t pt_index = PT_INDEX(virt_addr);
+
+    uint64_t *pml4_entries = (uint64_t *)HHDM_PHYS_TO_VIRT(pml4_phys);
+    uint64_t intermediate_flags = PAGE_PRESENT | PAGE_WRITABLE;
+    if (flags & PAGE_USER)
+        intermediate_flags |= PAGE_USER;
+
+    if (!(pml4_entries[pml4_index] & PAGE_PRESENT))
+    {
+        phys_addr_t frame = pmm_alloc_frame();
+        memset((uint8_t*)HHDM_PHYS_TO_VIRT(frame), 0, PAGE_SIZE);
+        pml4_entries[pml4_index] = frame;
+    }
+
+    pml4_entries[pml4_index] |= intermediate_flags;
+    phys_addr_t pdpt_phys = pml4_entries[pml4_index] & PHYS_ADDR_MASK;
+    uint64_t *pdpt_entries = (uint64_t *)HHDM_PHYS_TO_VIRT(pdpt_phys);
+    if (!(pdpt_entries[pdpt_index] & PAGE_PRESENT))
+    {
+        phys_addr_t frame = pmm_alloc_frame();
+        memset((uint8_t*)HHDM_PHYS_TO_VIRT(frame), 0, PAGE_SIZE);
+        pdpt_entries[pdpt_index] = frame;
+    }
+    pdpt_entries[pdpt_index] |= intermediate_flags;
+    phys_addr_t pd_phys = pdpt_entries[pdpt_index] & PHYS_ADDR_MASK;
+    uint64_t *pd_entries = (uint64_t *)HHDM_PHYS_TO_VIRT(pd_phys);
+    if (!(pd_entries[pd_index] & PAGE_PRESENT))
+    {
+        phys_addr_t frame = pmm_alloc_frame();
+        memset((uint8_t*)HHDM_PHYS_TO_VIRT(frame), 0, PAGE_SIZE);
+        pd_entries[pd_index] = frame;
+    }
+    pd_entries[pd_index] |= intermediate_flags;
+    phys_addr_t pt_phys = pd_entries[pd_index] & PHYS_ADDR_MASK;
+    uint64_t *pt_entries = (uint64_t *)HHDM_PHYS_TO_VIRT(pt_phys);
+
+    if (pt_entries[pt_index] & PAGE_PRESENT)
+        klog_warn("paging_map: remapping already mapped address 0x%p from 0x%p to 0x%p", virt_addr, (pt_entries[pt_index] & PHYS_ADDR_MASK), phys_addr);
+
+    pt_entries[pt_index] = phys_addr | flags;
+    _paging_invalidate_page(virt_addr);
+}
+
+void paging_map_range(phys_addr_t pml4_phys, uint64_t virt_addr, phys_addr_t phys_addr, size_t size, uint64_t flags)
+{
+    if (!IS_PAGE_ALIGNED(pml4_phys))
+    {
+        klog_error("paging_map_range: pml4 address is not page alligned 0x%p", pml4_phys);
+        return;
+    }
+
+    if (!IS_PAGE_ALIGNED(virt_addr))
+    {
+        klog_error("paging_map_range: virtual address is not page alligned 0x%p", virt_addr);
+        return;
+    }
+
+    if (!IS_PAGE_ALIGNED(phys_addr))
+    {
+        klog_error("paging_map_range: physical address is not page alligned 0x%p", phys_addr);
+        return;
+    }
+
+    size_t page_count = PAGE_COUNT(size);
+
+    for (size_t i = 0; i < page_count; i++)
+    {
+        paging_map(pml4_phys, virt_addr + (i * PAGE_SIZE), phys_addr + (i * PAGE_SIZE), flags);
+    }
+}
+
+void paging_unmap(phys_addr_t pml4_phys, uint64_t virt_addr)
+{
+    if (!IS_PAGE_ALIGNED(pml4_phys))
+    {
+        klog_error("paging_unmap: pml4 address is not page alligned 0x%p", pml4_phys);
+        return;
+    }
+
+    if (!IS_PAGE_ALIGNED(virt_addr))
+    {
+        klog_error("paging_unmap: virtual address is not page alligned 0x%p", virt_addr);
+        return;
+    }
+
+    uint64_t pml4_index = PML4_INDEX(virt_addr);
+    uint64_t pdpt_index = PDPT_INDEX(virt_addr);
+    uint64_t pd_index = PD_INDEX(virt_addr);
+    uint64_t pt_index = PT_INDEX(virt_addr);
+
+    uint64_t *pml4_entries = (uint64_t *)HHDM_PHYS_TO_VIRT(pml4_phys);
+    if (!(pml4_entries[pml4_index] & PAGE_PRESENT))
+    {
+        klog_warn("paging_unmap: address 0x%p is not mapped", virt_addr);
+        return;
+    }
+
+    phys_addr_t pdpt_phys = pml4_entries[pml4_index] & PHYS_ADDR_MASK;
+    uint64_t *pdpt_entries = (uint64_t *)HHDM_PHYS_TO_VIRT(pdpt_phys);
+    if (!(pdpt_entries[pdpt_index] & PAGE_PRESENT))
+    {
+        klog_warn("paging_unmap: address 0x%p is not mapped", virt_addr);
+        return;
+    }
+
+    phys_addr_t pd_phys = pdpt_entries[pdpt_index] & PHYS_ADDR_MASK;
+    uint64_t *pd_entries = (uint64_t *)HHDM_PHYS_TO_VIRT(pd_phys);
+    if (!(pd_entries[pd_index] & PAGE_PRESENT))
+    {
+        klog_warn("paging_unmap: address 0x%p is not mapped", virt_addr);
+        return;
+    }
+
+    phys_addr_t pt_phys = pd_entries[pd_index] & PHYS_ADDR_MASK;
+    uint64_t *pt_entries = (uint64_t *)HHDM_PHYS_TO_VIRT(pt_phys);
+    if (!(pt_entries[pt_index] & PAGE_PRESENT))
+    {
+        klog_warn("paging_unmap: address 0x%p is not mapped", virt_addr);
+        return;
+    }
+    pt_entries[pt_index] = 0;
+    _paging_invalidate_page(virt_addr);
+}
+
+void paging_unmap_range(phys_addr_t pml4_phys, uint64_t virt_addr, size_t size)
+{
+    if (!IS_PAGE_ALIGNED(pml4_phys))
+    {
+        klog_error("paging_unmap_range: pml4 address is not page alligned 0x%p", pml4_phys);
+        return;
+    }
+
+    if (!IS_PAGE_ALIGNED(virt_addr))
+    {
+        klog_error("paging_unmap_range: virtual address is not page alligned 0x%p", virt_addr);
+        return;
+    }
+
+    size_t page_count = PAGE_COUNT(size);
+
+    for (size_t i = 0; i < page_count; i++)
+    {
+        paging_unmap(pml4_phys, virt_addr + (i * PAGE_SIZE));
+    }
+}
+
+bool paging_is_mapped(phys_addr_t pml4_phys, uint64_t virt_addr)
+{
+    if (!IS_PAGE_ALIGNED(pml4_phys))
+    {
+        klog_error("paging_is_mapped: pml4 address is not page alligned 0x%p", pml4_phys);
         return false;
     }
 
+    uint64_t pml4_index = PML4_INDEX(virt_addr);
+    uint64_t pdpt_index = PDPT_INDEX(virt_addr);
+    uint64_t pd_index = PD_INDEX(virt_addr);
+    uint64_t pt_index = PT_INDEX(virt_addr);
 
-    page_dir_entry *page_dir = PAGE_DIR_VIRT_ADDR;
-    uint32_t dir_index = DIR_INDEX(virt_addr);
-    uint32_t table_index = TABLE_INDEX(virt_addr);
+    uint64_t *pml4_entries = (uint64_t *)HHDM_PHYS_TO_VIRT(pml4_phys);
+    if (!(pml4_entries[pml4_index] & PAGE_PRESENT))
+        return false;
 
-    if (!(page_dir[dir_index] & PAGE_FLAG_PRESENT)) return false;
-    uint32_t *page_table = PAGE_TABLE_VIRT_ADDR(dir_index);
-    if (!(page_table[table_index] & PAGE_FLAG_PRESENT)) return false;
+    phys_addr_t pdpt_phys = pml4_entries[pml4_index] & PHYS_ADDR_MASK;
+    uint64_t *pdpt_entries = (uint64_t *)HHDM_PHYS_TO_VIRT(pdpt_phys);
+    if (!(pdpt_entries[pdpt_index] & PAGE_PRESENT))
+        return false;
+
+    phys_addr_t pd_phys = pdpt_entries[pdpt_index] & PHYS_ADDR_MASK;
+    uint64_t *pd_entries = (uint64_t *)HHDM_PHYS_TO_VIRT(pd_phys);
+    if (!(pd_entries[pd_index] & PAGE_PRESENT))
+        return false;
+
+    phys_addr_t pt_phys = pd_entries[pd_index] & PHYS_ADDR_MASK;
+    uint64_t *pt_entries = (uint64_t *)HHDM_PHYS_TO_VIRT(pt_phys);
+    if (!(pt_entries[pt_index] & PAGE_PRESENT))
+        return false;
+
     return true;
-
 }
 
-void paging_unmap_page(uintptr_t virt_addr)
+phys_addr_t paging_get_physical(phys_addr_t pml4_phys, uint64_t virt_addr)
 {
-    if (!initialized)
+    if (!IS_PAGE_ALIGNED(pml4_phys))
     {
-        klog_error("paging_umap_page: Called before initialising paging");
-        return;
-    }
-    if (!pmm_is_aligned(virt_addr))
-    {
-        klog_error("paging_umap_page: Address are not page aligned, virt_addr=0x%x phys_addr=0x%x", virt_addr);
-        return;
+        klog_error("paging_is_mapped: pml4 address is not page alligned 0x%p", pml4_phys);
+        return PMM_INVALID_ADDRESS;
     }
 
-    page_dir_entry *page_dir = PAGE_DIR_VIRT_ADDR;
-    uint32_t dir_index = DIR_INDEX(virt_addr);
-    uint32_t table_index = TABLE_INDEX(virt_addr);
+    uint64_t pml4_index = PML4_INDEX(virt_addr);
+    uint64_t pdpt_index = PDPT_INDEX(virt_addr);
+    uint64_t pd_index = PD_INDEX(virt_addr);
+    uint64_t pt_index = PT_INDEX(virt_addr);
+    uint64_t phys_offset = PAGE_OFFSET(virt_addr);
 
-    if (!(page_dir[dir_index] & PAGE_FLAG_PRESENT)) return;
-    uint32_t *page_table = PAGE_TABLE_VIRT_ADDR(dir_index);
-    if (!(page_table[table_index] & PAGE_FLAG_PRESENT)) return;
-    
-    page_table[table_index] = 0;
+    uint64_t *pml4_entries = (uint64_t *)HHDM_PHYS_TO_VIRT(pml4_phys);
+    if (!(pml4_entries[pml4_index] & PAGE_PRESENT))
+        return PMM_INVALID_ADDRESS;
 
+    phys_addr_t pdpt_phys = pml4_entries[pml4_index] & PHYS_ADDR_MASK;
+    uint64_t *pdpt_entries = (uint64_t *)HHDM_PHYS_TO_VIRT(pdpt_phys);
+    if (!(pdpt_entries[pdpt_index] & PAGE_PRESENT))
+        return PMM_INVALID_ADDRESS;
+
+    phys_addr_t pd_phys = pdpt_entries[pdpt_index] & PHYS_ADDR_MASK;
+    uint64_t *pd_entries = (uint64_t *)HHDM_PHYS_TO_VIRT(pd_phys);
+    if (!(pd_entries[pd_index] & PAGE_PRESENT))
+        return PMM_INVALID_ADDRESS;
+
+    phys_addr_t pt_phys = pd_entries[pd_index] & PHYS_ADDR_MASK;
+    uint64_t *pt_entries = (uint64_t *)HHDM_PHYS_TO_VIRT(pt_phys);
+    if (!(pt_entries[pt_index] & PAGE_PRESENT))
+        return PMM_INVALID_ADDRESS;
+    return (pt_entries[pt_index] & PHYS_ADDR_MASK) | phys_offset;
 }
 
-// TODO: needs some work
-phys_addr_t paging_create_dir()
+phys_addr_t paging_get_current_pml4()
 {
-    return pmm_alloc_page();
-}
-
-phys_addr_t paging_get_physical(uintptr_t virt_addr)
-{
-    page_dir_entry *page_dir = PAGE_DIR_VIRT_ADDR;
-    uint32_t dir_index = DIR_INDEX(virt_addr);
-    uint32_t table_index = TABLE_INDEX(virt_addr);
-
-    if (!(page_dir[dir_index] & PAGE_FLAG_PRESENT)) return PMM_INVALID_ADDRESS;
-    uint32_t *page_table = PAGE_TABLE_VIRT_ADDR(dir_index);
-    if (!(page_table[table_index] & PAGE_FLAG_PRESENT)) return PMM_INVALID_ADDRESS;
-    
-    return (phys_addr_t)((page_dir[dir_index] & 0xFFF) + (page_table[table_index] & 0xFFF) + PAGE_INDEX(virt_addr));
+    return _paging_get_current_dir();
 }

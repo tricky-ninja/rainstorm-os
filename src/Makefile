@@ -6,26 +6,21 @@ ASM_SOURCES := $(shell find $(SRC_DIR) -name '*.asm' -printf "%P\n")
 C_OBJS   := $(patsubst %.c,   $(BUILD_DIR)/%.o,     $(C_SOURCES))
 ASM_OBJS := $(patsubst %.asm, $(BUILD_DIR)/%.asm.o, $(ASM_SOURCES))
 
-# Copy grub.cfg (order-only mkdir via | create)
-$(ISO_DIR)/boot/grub/grub.cfg: $(SRC_DIR)/boot/grub.cfg | create
-	cp $< $@
 
-# Link the kernel from our objects
-$(ISO_DIR)/boot/kernel: $(C_OBJS) $(ASM_OBJS) | create
+$(ISO_DIR)/boot/$(PROJECT_NAME): $(C_OBJS) $(ASM_OBJS) | create
 	$(LD) $(LDFLAGS) -o $@ $^ -lgcc
 
-# Compile C sources (ensure output directory exists)
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c $(SRC_DIR)/arch/i686/isr_gen.c | create
+
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c $(SRC_DIR)/cpu/isr_gen.c | create
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-# Assemble ASM sources (ensure output directory exists)
-$(BUILD_DIR)/%.asm.o: $(SRC_DIR)/%.asm $(SRC_DIR)/arch/i686/isr.inc | create
+$(BUILD_DIR)/%.asm.o: $(SRC_DIR)/%.asm $(SRC_DIR)/cpu/isr_gen.inc | create
 	@mkdir -p $(dir $@)
 	$(ASM)  $(ASMFLAGS) -o $@ $<
 
-$(SRC_DIR)/arch/i686/isr.inc: $(TOOLS_DIR)/gen_isr.py
+$(SRC_DIR)/cpu/isr_gen.inc: $(TOOLS_DIR)/gen_isr.py
 	python3 $< asm > $@
 
-$(SRC_DIR)/arch/i686/isr_gen.c: $(TOOLS_DIR)/gen_isr.py
+$(SRC_DIR)/cpu/isr_gen.c: $(TOOLS_DIR)/gen_isr.py
 	python3 $< c > $@

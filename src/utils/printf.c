@@ -30,12 +30,12 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
+#define PRINTF_DISABLE_SUPPORT_FLOAT
+
 #include <stdbool.h>
 #include <stdint.h>
 
 #include "printf.h"
-#include "drivers/x86/screen/vga.h"
-#include "drivers/x86/serial/serial.h"
 
 
 // define this globally (e.g. gcc -DPRINTF_INCLUDE_CONFIG_H ...) to include the
@@ -44,18 +44,6 @@
 #ifdef PRINTF_INCLUDE_CONFIG_H
 #include "printf_config.h"
 #endif
-
-
-
-void _putchar(char character)
-{
- vga_print_char(character, 0);
-}
-
-void _putchar_serial(char character)
-{
-    serial_write(SERIAL_COM1_BASE, character);
-}
 
 
 // 'ntoa' conversion buffer size, this must be big enough to hold one converted
@@ -131,6 +119,7 @@ void _putchar_serial(char character)
 #include <float.h>
 #endif
 
+#include "sink.h"
 
 // output function type
 typedef void (*out_fct_type)(char character, void* buffer, size_t idx, size_t maxlen);
@@ -141,6 +130,25 @@ typedef struct {
   void  (*fct)(char character, void* arg);
   void* arg;
 } out_fct_wrap_type;
+
+static int default_sink = -1;
+
+void kprintf_set_default_sink(int id)
+{
+    default_sink = id;
+}
+
+int kprintf_get_default_sink()
+{
+    return default_sink;
+}
+
+
+void _putchar(char character)
+{
+  sink_write(default_sink, character);
+}
+
 
 
 // internal buffer output
@@ -165,14 +173,6 @@ static inline void _out_char(char character, void* buffer, size_t idx, size_t ma
   (void)buffer; (void)idx; (void)maxlen;
   if (character) {
     _putchar(character);
-  }
-}
-
-static inline void _out_char_serial(char character, void* buffer, size_t idx, size_t maxlen)
-{
-  (void)buffer; (void)idx; (void)maxlen;
-  if (character) {
-    _putchar_serial(character);
   }
 }
 
@@ -881,7 +881,7 @@ static int _vsnprintf(out_fct_type out, char* buffer, const size_t maxlen, const
 
 ///////////////////////////////////////////////////////////////////////////////
 
-int printf_(const char* format, ...)
+int kprintf_(const char* format, ...)
 {
   va_list va;
   va_start(va, format);
@@ -891,23 +891,8 @@ int printf_(const char* format, ...)
   return ret;
 }
 
-// ADDED CODE
 
-int serial_printf_(const char* format, ...)
-{
-  va_list va;
-  va_start(va, format);
-  char buffer[1];
-  const int ret = _vsnprintf(_out_char_serial, buffer, (size_t)-1, format, va);
-  va_end(va);
-  return ret;
-}
-
-
-// END OF ADDED CODE
-
-
-int sprintf_(char* buffer, const char* format, ...)
+int ksprintf_(char* buffer, const char* format, ...)
 {
   va_list va;
   va_start(va, format);
@@ -917,7 +902,7 @@ int sprintf_(char* buffer, const char* format, ...)
 }
 
 
-int snprintf_(char* buffer, size_t count, const char* format, ...)
+int ksnprintf_(char* buffer, size_t count, const char* format, ...)
 {
   va_list va;
   va_start(va, format);
@@ -927,24 +912,14 @@ int snprintf_(char* buffer, size_t count, const char* format, ...)
 }
 
 
-int vprintf_(const char* format, va_list va)
+int kvprintf_(const char* format, va_list va)
 {
   char buffer[1];
   return _vsnprintf(_out_char, buffer, (size_t)-1, format, va);
 }
 
-// ADDED CODE
 
-int serial_vprintf_(const char* format, va_list va)
-{
-  char buffer[1];
-  return _vsnprintf(_out_char_serial, buffer, (size_t)-1, format, va);
-}
-
-// END OF ADDED CODE
-
-
-int vsnprintf_(char* buffer, size_t count, const char* format, va_list va)
+int kvsnprintf_(char* buffer, size_t count, const char* format, va_list va)
 {
   return _vsnprintf(_out_buffer, buffer, count, format, va);
 }

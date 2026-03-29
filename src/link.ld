@@ -1,43 +1,64 @@
-OUTPUT_FORMAT(elf32-i386)
+OUTPUT_FORMAT(elf64-x86-64)
 ENTRY(_start)
 
-KERNEL_VMA = 0xC0000000;
+KERNEL_VMA = 0xFFFFFFFF80000000;
+
+PHDRS
+{
+    limine_requests PT_LOAD FLAGS((1 << 2));
+    text   PT_LOAD FLAGS((1 << 0) | (1 << 2));
+    rodata PT_LOAD FLAGS((1 << 2));
+    data   PT_LOAD FLAGS((1 << 1) | (1 << 2));
+}
 
 SECTIONS
 {
-    . = KERNEL_VMA + 1M;
+    . = KERNEL_VMA;
+
     _kernel_start_virt = .;
-    _kernel_start_phys = . - KERNEL_VMA;
 
-    .multiboot ALIGN(0x1000) : AT(ADDR(.multiboot) - KERNEL_VMA)  {
-        *(.multiboot)
-    }
-    
-    .text ALIGN(0x1000) : AT(ADDR(.text) - KERNEL_VMA) {
-        *(.text)
-    }
+    .limine_requests : {
+        _LIMINE_BEGIN = .;
+        KEEP(*(.limine_requests_start))
+        KEEP(*(.limine_requests))
+        KEEP(*(.limine_requests_end))
+        _LIMINE_END = .;
+    } :limine_requests
 
-    .rodata ALIGN(0x1000) : AT(ADDR(.rodata) - KERNEL_VMA) {
-        *(.rodata)
-    }
+    . = ALIGN(CONSTANT(MAXPAGESIZE));
 
-    .shell_modules ALIGN(0x1000) : AT(ADDR(.shell_modules) - KERNEL_VMA) {
+    .text : {
+        _TEXT_BEGIN = .;
+        *(.text*)
+        _TEXT_END = .;
+    } :text
+
+    . = ALIGN(CONSTANT(MAXPAGESIZE));
+
+    .rodata : {
+        _RODATA_BEGIN = .;
+        *(.rodata*)
         _shell_modules_start = .;
         KEEP(*(.shell_modules))
         _shell_modules_end = .;
-    }
+        _RODATA_END = .;
+    } :rodata
 
-    .data ALIGN(0x1000) : AT(ADDR(.data) - KERNEL_VMA) {
-        *(.data)
-    }
+    . = ALIGN(CONSTANT(MAXPAGESIZE));
 
-    .bss ALIGN(0x1000)  (NOLOAD) : AT(ADDR(.bss) - KERNEL_VMA) {
+    .data : {
+        _DATA_BEGIN = .;
+        *(.data*)
+    } :data
+
+    .bss (NOLOAD) : {
         _bss_start = .;
         *(COMMON)
-        *(.bss)
+        *(.bss*)
         _bss_end = .;
-    }
+        _DATA_END = .;
+    } :data
 
     _kernel_end_virt = ALIGN(0x1000);
-    _kernel_end_phys = _kernel_end_virt - KERNEL_VMA;
+    KERNEL_SIZE      = _kernel_end_virt - KERNEL_VMA;
 }

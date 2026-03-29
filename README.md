@@ -1,72 +1,49 @@
 # RainstormOS
 
+A hobby x86-64 kernel written in C. Started as a 32-bit project, now fully 64-bit.
 
-RainstormOS is a 32-bit x86 operating system written in C.
-I started this project because I wanted to really understand how an OS works under the hood.
-It's not meant to be "the next big thing". It's just a learning project.
-
-![kernel-shell-image](images/shell.png)
-
-## Why am I making this?
-
-> because it's fun
-
-That's genuinely the main reason.
-
-I like low-level programming and understanding how things actually work, and operating systems were always a black box to me.
-
-## Current Status
-
-Right now RainstormOS is still early, it boots and I can interact with it through a basic shell.
-
-What’s implemented so far:
-
-- VGA text mode driver  
-- Serial UART driver  
-- Interrupts and PIC-based IRQ handling  
-- Keyboard driver (interrupt-driven)  
-- Basic kernel shell  
-- Bitmap-based physical memory manager  
-
-So for now its just:
-- Boot -> Initialize hardware -> Accept input -> Run simple commands
+I'm building this because low-level systems programming is interesting to me,
+and an OS is the best way to actually understand what's going on under the hood.
 
 
-## What I’m Working On Next
-_I may change this list as im learning more about osdev_
+## What works right now
 
-- Enable paging  
-- Build a virtual memory manager  
-- Implement a kernel heap  
-- Add context switching and multitasking  
+- Boots via Limine in 64-bit long mode
+- Higher-half kernel with HHDM mapping
+- Bitmap-based physical memory manager
+- 4-level paging with per-section flags (RX/RO/RW)
+- Framebuffer graphics
+- Exception handling
 
+## What I'm planning on adding soon
 
+- Virtual memory manager
+- Kernel heap (kmalloc/kfree)
+- ACPI parsing
+- APIC + keyboard driver
+- TTY and basic kernel shell
+- Timer
+- Cooperative multitasking + context switching
+- Proper synchronization primitives (spinlocks, mutexes)
+- Preemptive kernel threads
+- Usermode
+- Syscall interface
 
-## Future Plans
+## Later
 
-Long term, I want to push it further:
+- VFS layer (probably backed by a ramfs first)
+- ATA disk driver
+- AHCI
+- ext2 or FAT32
+- ELF loader
+- Linux syscall compatibility layer
 
-- ATA PIO disk reading
-- Maybe APIC and AHCI stuff  
-- FAT32 filesystem support  
-- Multiboot2 support
-- Proper graphics 
-- User mode  
+## Long shot goals
 
-Basically I want this to be a fully working OS, possibly binary compaitable with linux.
+- Full Linux binary compatibility
+- X11 + a basic window manager
 
+## Notes
 
-
-## Contributing
-
-This is mainly a personal learning project, but if you have suggestions, or notice something broken, just open an issue.
-
-
-
-
-## Final Notes
-
-RainstormOS is a project for me to learn more than anything else. I'm building it to understand things properly
-And I fully expect to refactor large parts of this as I learn more.
-
-
+This is purely a learning project. I expect to refactor things heavily as I go
+that's kind of the point. If you see something broken or have a suggestion, open an issue.

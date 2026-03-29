@@ -40,10 +40,6 @@
 extern "C" {
 #endif
 
-#define PRINTF_DISABLE_SUPPORT_FLOAT
-#define PRINTF_DISABLE_SUPPORT_EXPONENTIAL
-// #define PRINTF_DISABLE_SUPPORT_LONG_LONG
-
 
 /**
  * Output a character to a custom device like UART, used by the printf() function
@@ -57,14 +53,12 @@ void _putchar(char character);
  * Tiny printf implementation
  * You have to implement _putchar if you use printf()
  * To avoid conflicts with the regular printf() API it is overridden by macro defines
- * and internal underscore-appended functions like printf_() are used
+ * and internal underscore-appended functions like kprintf_() are used
  * \param format A string that specifies the format of the output
  * \return The number of characters that are written into the array, not counting the terminating null character
  */
-#define printf printf_
-#define serial_printf serial_printf_
-int printf_(const char* format, ...);
-int serial_printf_(const char* format, ...);
+#define kprintf kprintf_
+int kprintf_(const char* format, ...);
 
 
 /**
@@ -74,8 +68,8 @@ int serial_printf_(const char* format, ...);
  * \param format A string that specifies the format of the output
  * \return The number of characters that are WRITTEN into the buffer, not counting the terminating null character
  */
-#define sprintf sprintf_
-int sprintf_(char* buffer, const char* format, ...);
+#define ksprintf ksprintf_
+int ksprintf_(char* buffer, const char* format, ...);
 
 
 /**
@@ -88,10 +82,10 @@ int sprintf_(char* buffer, const char* format, ...);
  *         null character. A value equal or larger than count indicates truncation. Only when the returned value
  *         is non-negative and less than count, the string has been completely written.
  */
-#define snprintf  snprintf_
-#define vsnprintf vsnprintf_
-int  snprintf_(char* buffer, size_t count, const char* format, ...);
-int vsnprintf_(char* buffer, size_t count, const char* format, va_list va);
+#define ksnprintf  ksnprintf_
+#define kvsnprintf kvsnprintf_
+int  ksnprintf_(char* buffer, size_t count, const char* format, ...);
+int kvsnprintf_(char* buffer, size_t count, const char* format, va_list va);
 
 
 /**
@@ -100,10 +94,8 @@ int vsnprintf_(char* buffer, size_t count, const char* format, va_list va);
  * \param va A value identifying a variable arguments list
  * \return The number of characters that are WRITTEN into the buffer, not counting the terminating null character
  */
-#define vprintf vprintf_
-#define serial_vprintf serial_vprintf_
-int vprintf_(const char* format, va_list va);
-int serial_vprintf_(const char* format, va_list va);
+#define kvprintf kvprintf_
+int kvprintf_(const char* format, va_list va);
 
 
 /**
@@ -116,6 +108,9 @@ int serial_vprintf_(const char* format, va_list va);
  */
 int fctprintf(void (*out)(char character, void* arg), void* arg, const char* format, ...);
 
+
+void kprintf_set_default_sink(int id);
+int kprintf_get_default_sink();
 
 #ifdef __cplusplus
 }

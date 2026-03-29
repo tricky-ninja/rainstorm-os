@@ -1,16 +1,12 @@
-#!/bin/python
 import sys
 
-# void _isr0();
-
-# idt_set_gate(0, _isr0, 0x08, IDT_FLAG_INTERUPT_GATE_32 | IDT_FLAG_RING_0);
 
 def main():
     
     with_error = [8, 10, 11, 12, 13, 14, 17, 21]
     
     if len(sys.argv) != 2: 
-        print(f"usage: {sys.argv[0]} [asm/c]")
+        print(f"usage: {sys.argv[0]} <asm/c>", file=sys.stderr)
         return
 
     if sys.argv[1] == "asm":
@@ -27,9 +23,9 @@ def main():
         for i in range(256):
             print(f"void _isr{i}();")
        
-        print("\nvoid isr_install()\n{")
+        print("\nvoid isr_init()\n{")
         for i in range(256):
-            print(f"    idt_set_gate({i}, (uint32_t)_isr{i}, 0x08, IDT_FLAG_INTERUPT_GATE_32 | IDT_FLAG_RING_0 | IDT_FLAG_PRESENT);")
+            print(f"    idt_set_gate({i}, _isr{i}, IDT_FLAG_INTERRUPT_GATE_64 | IDT_FLAG_RING_0 | IDT_FLAG_PRESENT);")
         print("}")
     
 

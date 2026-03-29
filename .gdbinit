@@ -1,7 +1,6 @@
-set architecture i386
 set disassembly-flavor intel
 
-file build/Rainstorm/boot/kernel
+file build/Rainstorm/boot/rainstorm
 target remote localhost:1234
 b _start
 
