@@ -1,0 +1,34 @@
+This list is just for me to keep track of stuff and i may change it as i learn more
+
+Need to do:
+- Virtual memory manager
+- Kernel Heap
+- ACPI parsing
+- APIC and keyboard stuff
+- TTY driver and basic kernel shell
+- Timer stuff
+- Context switching and multitasking (cooperative)
+- Proper locks (spinlocks, mutexes and so on)
+- Preemptive kernel threads
+- Get to usermode
+- Syscall stuff
+
+In future:
+- Some vfs layer operating on a ramfs or something else
+- ATA disk driver
+- Network stack
+- AHCI driver
+- Actual filesystem (prob ext2 or fat32)
+- Elf loading
+- Implement Linux syscalls
+
+Dreams:
+- Linux binary compaitability
+- Run x11 with a basic window manager
+
+DONE:
+- 64 bit port
+- Interupts (exceptions)
+- Setup pmm
+- Setup higher half paging with hhdm
+- framebuffer graphics
